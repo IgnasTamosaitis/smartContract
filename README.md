@@ -153,7 +153,7 @@ Teisėjas išnagrinėja situaciją ir paskirsto lėšas.
 Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
 
 #### Sekos diagrama:
-sequenceDiagram
+```sequenceDiagram
     participant Client as Klientas
     participant Freelancer as Freelanceris
     participant Arbiter as Teisėjas
@@ -168,7 +168,7 @@ sequenceDiagram
     Contract-->>Client: ETH grąžinimas
     Contract-->>Freelancer: ETH išmokėjimas
     Contract-->>Arbiter: DisputeResolved
-
+```
 
 ## 7. Techninė architektūra
 
