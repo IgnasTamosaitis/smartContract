@@ -28,7 +28,7 @@ Klientas (Client) – užsako darbą, perveda projekto sumą į escrow, patvirti
 
 Freelanceris (Freelancer) – priima projektą, atlieka darbą ir pateikia rezultatą.
 
-Arbitras (Arbiter) – neutralus trečiasis asmuo, kuris sprendžia ginčus ir paskirsto lėšas.
+Teisėjas (Arbiter) – neutralus trečiasis asmuo, kuris sprendžia ginčus ir paskirsto lėšas.
 
 Išmanioji sutartis (FreelanceEscrow) – laiko lėšas escrow režimu, prižiūri projekto būsenas ir vykdo lėšų pervedimus pagal nustatytas taisykles.
 
@@ -75,8 +75,8 @@ Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos 
 ### Scenarijus 3: Ginčas
 1. Freelanceris pateikia darbą.
 2. Klientas inicijuoja ginčą.
-3. Arbitras išnagrinėja ginčą.
-4. Arbitras paskirsto lėšas tarp kliento ir freelancerio.
+3. Teisėjas išnagrinėja ginčą.
+4. Teisėjas paskirsto lėšas tarp kliento ir freelancerio.
 
 ---
 
@@ -87,7 +87,7 @@ Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos 
 sequenceDiagram
     participant Client as Klientas
     participant Freelancer as Freelanceris
-    participant Arbiter as Arbitras
+    participant Arbiter as Teisėjas
     participant Contract as Smart Contract (FreelanceEscrow)
 
     Client->>Contract: createProject(freelancer, arbiter, amount)
@@ -105,13 +105,13 @@ sequenceDiagram
     Client->>Contract: approveWork(projectId)
     Contract-->>Freelancer: ETH transfer
     Contract-->>Client: Event: ProjectCompleted
-
+```
 ### 6.2 Ginčo scenarijaus seka
 
 sequenceDiagram
     participant Client as Klientas
     participant Freelancer as Freelanceris
-    participant Arbiter as Arbitras
+    participant Arbiter as Teisėjas
     participant Contract as Smart Contract
 
     Freelancer->>Contract: submitWork(projectId, workHash)
