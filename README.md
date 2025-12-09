@@ -1,20 +1,22 @@
 # SmartContract
 # Freelance Escrow – Decentralizuota Freelance Paslaugų Atsiskaitymo Sistema
 
-Šiame projekte įgyvendinama decentralizuota freelance paslaugų apmokėjimo sistema Ethereum tinkle. Sistema užtikrina saugų atsiskaitymą tarp kliento ir freelancerio naudojant escrow principą. Lėšos laikomos išmaniosios sutarties viduje tol, kol darbas patvirtinamas. Esant ginčui, sprendimą priima arbitras.
+Šiame projekte įgyvendinta decentralizuota freelance paslaugų atsiskaitymo sistema, veikianti Ethereum blockchain tinkle. Sistema sukurta remiantis escrow principu ir užtikrina saugų bei skaidrų atsiskaitymą tarp kliento ir freelancer’io be tarpininkų.
 
+Kliento pervestos lėšos yra laikomos išmaniojoje sutartyje tol, kol darbas yra patvirtinamas. Esant ginčui tarp šalių, sprendimą priima iš anksto paskirtas arbitras, o išmanioji sutartis automatiškai paskirsto lėšas pagal jo sprendimą.
+
+
+## 1. Naudotos technologijos
 Projektas sukurtas naudojant:
-- Solidity
-- Remix IDE
-- Truffle Framework
-- Ganache lokaliam testavimui
-- MetaMask
-- Ethereum testnet (Sepolia)
-- React ir ethers.js front-end aplikacijai
+- Solidity – išmaniosios sutarties kūrimui
+- Remix IDE – pirminiam sutarties testavimui
+- Truffle Framework – projektui valdyti, diegti ir testuoti
+- Ganache – lokaliam blockchain testavimui
+- MetaMask – piniginės ir vartotojo autentifikacijai
+- Ethereum testnet (Sepolia) – testiniam diegimui
+- React ir ethers.js – front-end decentralizuotai aplikacijai (dApp)
 
----
-
-## 1. Verslo modelio aprašymas
+## 2. Verslo modelio aprašymas
 
 Sukuriama freelance platforma, kurioje trys šalys gali saugiai atlikti atsiskaitymo procesą naudojant Ethereum išmaniąją sutartį. Klientas inicijuoja projektą ir perveda lėšas į escrow. Freelanceris priima darbą, atlieka jį ir pateikia rezultatą. Klientas gali patvirtinti darbą ir išmokėti lėšas freelancer’iui. Jeigu klientas nesutinka su atliktu darbu, jis gali inicijuoti ginčą, kurį išsprendžia arbitras.
 
@@ -22,7 +24,7 @@ Sistema panaikina pasitikėjimo poreikį tarp šalių, nes visą procesą koordi
 
 ---
 
-## 2. Pagrindiniai veikėjai
+## 3. Pagrindiniai veikėjai
 
 Klientas (Client) – užsako darbą, perveda projekto sumą į escrow, patvirtina ar atmeta atliktą darbą.
 
@@ -34,7 +36,7 @@ Išmanioji sutartis (FreelanceEscrow) – laiko lėšas escrow režimu, prižiū
 
 ---
 
-## 3. Išmaniosios sutarties logika
+## 4. Išmaniosios sutarties logika
 
 1. Klientas sukuria projektą nurodydamas freelancerio adresą, arbitro adresą ir projekto kainą.
 2. Klientas perveda lėšas į escrow naudodamas `fundProject`.
@@ -46,7 +48,7 @@ Išmanioji sutartis (FreelanceEscrow) – laiko lėšas escrow režimu, prižiū
 
 ---
 
-## 4. Projekto būsenos
+## 5. Projekto būsenos
 
 Created – projektas sukurtas, lėšos nepervestos  
 Funded – klientas pervedė lėšas į escrow  
@@ -59,7 +61,7 @@ Resolved – arbitras priėmė sprendimą
 
 ---
 
-## 5. Tipiniai scenarijai
+## 6. Tipiniai scenarijai
 
 ### Scenarijus 1: Projekto įvykdymas
 1. Klientas sukuria projektą.
@@ -80,9 +82,9 @@ Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos 
 
 ---
 
-## 6. Sekų diagramos (Sequence Diagrams)
+## 7. Sekų diagramos (Sequence Diagrams)
 
-### 6.1 Projekto įvykdymo seka
+### 7.1 Projekto įvykdymo seka
 
 Šiame skyriuje pateikiama tipinė decentralizuotos „freelance“ sutarties vykdymo eiga, kai klientas užsako darbą iš freelancerio, o procesą prižiūri arbitras. Visi veiksmai atliekami per išmaniąją sutartį (Smart Contract), kuri užtikrina skaidrumą, lėšų saugumą ir automatinį atsiskaitymą.
 
@@ -137,7 +139,7 @@ sequenceDiagram
     Contract-->>Freelancer: ETH pervedimas
     Contract-->>Client: ProjectCompleted
 ```
-### 6.2 Ginčo scenarijaus seka
+### 7.2 Ginčo scenarijaus seka
 Ši diagrama vaizduoja scenarijų, kai klientas nėra patenkintas pateiktu darbu ir inicijuoja ginčą. Šiuo atveju sprendimą priima teisėjas (arbiteris), kuris paskirsto užšaldytas lėšas tarp kliento ir freelancerio pagal priimtą sprendimą.
 
 Vykdymo eiga
@@ -153,7 +155,8 @@ Teisėjas išnagrinėja situaciją ir paskirsto lėšas.
 Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
 
 #### Sekos diagrama:
-```sequenceDiagram
+```mermaid
+sequenceDiagram
     participant Client as Klientas
     participant Freelancer as Freelanceris
     participant Arbiter as Teisėjas
@@ -170,31 +173,44 @@ Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
     Contract-->>Arbiter: DisputeResolved
 ```
 
-## 7. Techninė architektūra
+## 8. Techninė architektūra
 
-Išmanioji sutartis FreelanceEscrow.sol apima:
-1.	Projekto būsenų mašiną (enum State)
-2.	Projekto struktūrą (struct Project)
-3.	Projektų registrą (mapping(uint256 => Project))
+Išmanioji sutartis FreelanceEscrow.sol realizuoja visą projekto logiką ir susideda iš šių pagrindinių dalių:
 
-4. Modifikatorius:
-⦁	onlyClient
-⦁	onlyFreelancer
-⦁	onlyArbiter
-⦁	inState
+1. Projekto būsenų valdymas:
+* Būsenų mašina (enum State) <br /> 
+Apibrėžia visas galimas projekto būsenas (pvz. sukurtas, finansuotas, priimtas, darbas pateiktas, ginčas, užbaigtas).
+Tai leidžia tiksliai kontroliuoti, kokius veiksmus galima atlikti kiekviename projekto etape.
+* Projekto struktūra (struct Project) <br /> 
+Saugo visą su projektu susijusią informaciją: klientą, freelancerį, teisėją, projekto sumą, būseną ir kita.
+* Projektų registras (mapping(uint256 => Project)) <br /> 
+Leidžia vienoje išmaniojoje sutartyje valdyti kelis projektus, kiekvienam suteikiant unikalų identifikatorių (projectId).
 
-5. Įvykius:
-⦁	ProjectCreated
-⦁	ProjectFunded
-⦁	ProjectAccepted
-⦁	WorkSubmitted
-⦁	ProjectCompleted
-⦁	DisputeOpened
-⦁	DisputeResolved
+2. Prieigos kontrolė (modifikatoriai)<br /> 
+Siekiant užtikrinti saugumą ir teisingą procesų eigą, naudojami šie modifikatoriai:
+- onlyClient – leidžia funkciją vykdyti tik projekto klientui
+- onlyFreelancer – leidžia funkciją vykdyti tik projekto freelancer’iui
+- onlyArbiter – leidžia ginčus spręsti tik paskirtam teisėjui
+- inState – užtikrina, kad funkcija būtų vykdoma tik tinkamoje projekto būsenoje
 
-6. Saugų ETH pervedimą naudojant call
+3. Įvykius:<br /> 
+Visi svarbūs veiksmai yra fiksuojami „blockchain“ tinkle per įvykius:
+- ProjectCreated – projektas sukurtas
+- ProjectFunded – projektas finansuotas
+- ProjectAccepted – freelanceris priėmė projektą
+- WorkSubmitted – pateiktas atliktas darbas
+- ProjectCompleted – projektas sėkmingai užbaigtas
+- DisputeOpened – inicijuotas ginčas
+- DisputeResolved – ginčas išspręstas
+- Šie įvykiai leidžia front-end aplikacijai sekti projekto eigą ir atvaizduoti visą istoriją vartotojui.
 
-8. Failų struktūra
+4. ETH pervedimai
+
+ETH pervedimai atliekami naudojant call metodą, kuris yra saugus ir plačiai naudojamas sprendimas Solidity kontraktuose.
+Jis leidžia patikimai pervesti lėšas tarp projekto dalyvių.
+
+5. Projekto struktūra
+```
 FreelanceEscrow/
 │
 ├── contracts/
@@ -213,48 +229,49 @@ FreelanceEscrow/
 │
 ├── truffle-config.js
 └── README.md
+```
+6. Diegimas ir testavimas
 
-9. Diegimo ir testavimo instrukcijos
+##### Ganache
+-	Paleisti Ganache
+-	Sukurti naują workspace
+-	RPC adresas: `http://127.0.0.1:7545`
 
-9.1 Ganache
-⦁	Paleisti Ganache
-⦁	Sukurti naują workspace
-⦁	RPC adresas: http://127.0.0.1:7545
+##### Truffle komandos
+Kompiliavimas: ```truffle compile```
 
-9.2 Truffle komandos
-Kompiliavimas:
-truffle compile
+Deploy į lokalų tinklą: ```truffle migrate --network development```
 
-Deploy į lokalų tinklą:
-truffle migrate --network development
+Testai: ```truffle test```
 
-Testai:
-truffle test
-
-9.3 Deploy į Sepolia
-.env failas:
+##### Deploy į Sepolia
+Sukurkite .env failas:
+```
 SEPOLIA_RPC_URL=<rpc_url>
 PRIVATE_KEY=<private_key>
-
-Migracija:
+```
+Deploy komanda:
+```
 truffle migrate --network sepolia
+```
+Įdiegtą kontraktą galima peržiūrėti: ```https://sepolia.etherscan.io```
 
-Kontrakto peržiūra:
-https://sepolia.etherscan.io
+7. Front-End dApp funkcinis aprašymas
 
-10. Front-End dApp funkcinis aprašymas
+Front-end aplikacija leidžia vartotojams patogiai sąveikauti su išmaniąja sutartimi per naršyklę.
 
-Front-end aplikacija suteikia galimybes:
-⦁	prisijungti per MetaMask
-⦁	sukurti projektą
-⦁	pervesti projekto lėšas
-⦁	freelancer’iui priimti projektą
-⦁	pateikti atliktą darbą
-⦁	patvirtinti darbą arba inicijuoti ginčą
-⦁	matyti projekto būseną ir istoriją
+*Pagrindinės galimybės:*
 
-Naudojamos technologijos:
-⦁	React
-⦁	Vite
-⦁	ethers.js
-⦁	MetaMask
+-	prisijungti per **MetaMask**
+-	sukurti projektą
+-	pervesti projekto lėšas (ETH)
+-	freelancer’iui priimti projektą
+-	pateikti atliktą darbą
+-	patvirtinti darbą arba inicijuoti ginčą
+-	matyti projekto būseną ir istoriją
+
+*Naudojamos technologijos:*
+-	React
+-	Vite
+-	ethers.js
+-	MetaMask
