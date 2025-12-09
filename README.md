@@ -83,6 +83,37 @@ Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos 
 ## 6. Sekų diagramos (Sequence Diagrams)
 
 ### 6.1 Projekto įvykdymo seka
+
+Šiame skyriuje pateikiama tipinė decentralizuotos „freelance“ sutarties vykdymo eiga, kai klientas užsako darbą iš freelancerio, o procesą prižiūri arbitras. Visi veiksmai atliekami per išmaniąją sutartį (Smart Contract), kuri užtikrina skaidrumą, lėšų saugumą ir automatinį atsiskaitymą.
+
+Vykdymo etapai
+
+Projekto sukūrimas
+Klientas sukuria naują projektą išmaniojoje sutartyje, nurodydamas:
+
+freelancerio adresą,
+
+arbitro adresą,
+
+sutartą atlygio sumą (ETH).
+
+Projekto finansavimas
+Klientas perveda sutartą ETH sumą į išmaniąją sutartį. Lėšos yra „užšaldomos“ (escrow) iki projekto pabaigos.
+
+Projekto patvirtinimas freelancerio
+Freelanceris patvirtina, kad sutinka su projekto sąlygomis ir pradeda darbą.
+
+Darbo pateikimas
+Freelanceris pateikia atlikto darbo įrodymą (pvz., „hash“ reikšmę), kuri leidžia užfiksuoti, kad darbas buvo perduotas klientui.
+
+Darbo patvirtinimas ir atsiskaitymas
+Klientui patvirtinus, kad darbas atliktas tinkamai, išmanioji sutartis:
+
+automatiškai perveda ETH freelanceriųi,
+
+pažymi projektą kaip užbaigtą.
+
+#### Sekos diagrama
 ```mermaid
 sequenceDiagram
     participant Client as Klientas
@@ -91,37 +122,53 @@ sequenceDiagram
     participant Contract as Smart Contract (FreelanceEscrow)
 
     Client->>Contract: createProject(freelancer, arbiter, amount)
-    Contract-->>Client: Event: ProjectCreated
+    Contract-->>Client: ProjectCreated
 
     Client->>Contract: fundProject(projectId) + ETH
-    Contract-->>Client: Event: ProjectFunded
+    Contract-->>Client: ProjectFunded
 
     Freelancer->>Contract: acceptProject(projectId)
-    Contract-->>Freelancer: Event: ProjectAccepted
+    Contract-->>Freelancer: ProjectAccepted
 
     Freelancer->>Contract: submitWork(projectId, workHash)
-    Contract-->>Client: Event: WorkSubmitted
+    Contract-->>Client: WorkSubmitted
 
     Client->>Contract: approveWork(projectId)
-    Contract-->>Freelancer: ETH transfer
-    Contract-->>Client: Event: ProjectCompleted
+    Contract-->>Freelancer: ETH pervedimas
+    Contract-->>Client: ProjectCompleted
 ```
 ### 6.2 Ginčo scenarijaus seka
+Ši diagrama vaizduoja scenarijų, kai klientas nėra patenkintas pateiktu darbu ir inicijuoja ginčą. Šiuo atveju sprendimą priima teisėjas (arbiteris), kuris paskirsto užšaldytas lėšas tarp kliento ir freelancerio pagal priimtą sprendimą.
 
+Vykdymo eiga
+
+Freelanceris pateikia atliktą darbą į išmaniąją sutartį.
+
+Klientas, nesutikdamas su darbo kokybe ar sąlygomis, inicijuoja ginčą.
+
+Išmanioji sutartis užregistruoja ginčą sistemoje.
+
+Teisėjas išnagrinėja situaciją ir paskirsto lėšas.
+
+Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
+
+#### Sekos diagrama:
 sequenceDiagram
     participant Client as Klientas
     participant Freelancer as Freelanceris
     participant Arbiter as Teisėjas
-    participant Contract as Smart Contract
+    participant Contract as Smart Contract (FreelanceEscrow)
 
     Freelancer->>Contract: submitWork(projectId, workHash)
-    Client->>Contract: raiseDispute(projectId)
-    Contract-->>Client: Event: DisputeOpened
 
-    Arbiter->>Contract: resolveDispute(projectId, clientShare, freelancerShare)
-    Contract-->>Client: ETH refund
-    Contract-->>Freelancer: ETH payout
-    Contract-->>Arbiter: Event: DisputeResolved
+    Client->>Contract: raiseDispute(projectId)
+    Contract-->>Client: DisputeOpened
+
+    Arbiter->>Contract: resolveDispute(projectId,\nclientShare, freelancerShare)
+    Contract-->>Client: ETH grąžinimas
+    Contract-->>Freelancer: ETH išmokėjimas
+    Contract-->>Arbiter: DisputeResolved
+
 
 ## 7. Techninė architektūra
 
