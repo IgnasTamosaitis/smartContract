@@ -18,48 +18,63 @@ Projektas sukurtas naudojant:
 
 ## 2. Verslo modelio aprašymas
 
-Sukuriama freelance platforma, kurioje trys šalys gali saugiai atlikti atsiskaitymo procesą naudojant Ethereum išmaniąją sutartį. Klientas inicijuoja projektą ir perveda lėšas į escrow. Freelanceris priima darbą, atlieka jį ir pateikia rezultatą. Klientas gali patvirtinti darbą ir išmokėti lėšas freelancer’iui. Jeigu klientas nesutinka su atliktu darbu, jis gali inicijuoti ginčą, kurį išsprendžia arbitras.
+Sukuriama decentralizuota freelance paslaugų platforma, kurioje dalyvauja trys pagrindinės šalys: *klientas*, *freelancer’is* ir *arbitras*. <br /> 
 
-Sistema panaikina pasitikėjimo poreikį tarp šalių, nes visą procesą koordinuoja išmanioji sutartis.
+Procesas vyksta taip:<br /> 
+- klientas sukuria projektą ir perveda sutartą ETH sumą į išmaniąją sutartį (escrow),
+- freelancer’is priima projektą, atlieka darbą ir pateikia rezultatą,
+- klientas patvirtina darbą, o lėšos automatiškai pervedamos freelancer’iui.
 
----
+Jeigu klientas nesutinka su atliktu darbu, jis gali inicijuoti ginčą. Tokiu atveju sprendimą priima *arbitras*, kuris nustato, kaip turi būti paskirstytos sutartyje laikomos lėšos.
+
+Visa projekto eiga yra automatizuota ir valdoma išmaniosios sutarties, todėl sistema panaikina pasitikėjimo poreikį tarp šalių, užtikrina skaidrumą ir sumažina atsiskaitymo riziką.
 
 ## 3. Pagrindiniai veikėjai
 
-Klientas (Client) – užsako darbą, perveda projekto sumą į escrow, patvirtina ar atmeta atliktą darbą.
+Sistemoje dalyvauja keturi pagrindiniai veikėjai, kurie kartu užtikrina saugų ir skaidrų atsiskaitymo procesą: <br /> 
 
-Freelanceris (Freelancer) – priima projektą, atlieka darbą ir pateikia rezultatą.
+**Klientas (Client)**<br/> 
+Inicijuoja projektą, perveda sutartą ETH sumą į escrow mechanizmą bei priima sprendimą patvirtinti arba atmesti pateiktą darbą.
 
-Teisėjas (Arbiter) – neutralus trečiasis asmuo, kuris sprendžia ginčus ir paskirsto lėšas.
+**Freelancer’is (Freelancer)**<br/> 
+Priima projektą, atlieka sutartą darbą ir pateikia jo rezultatą per išmaniąją sutartį.
 
-Išmanioji sutartis (FreelanceEscrow) – laiko lėšas escrow režimu, prižiūri projekto būsenas ir vykdo lėšų pervedimus pagal nustatytas taisykles.
+**Teisėjas (Arbiter)**<br/> 
+Neutralus trečiasis asmuo, kuris įtraukiamas tik ginčo atveju. Jis išnagrinėja situaciją ir nustato, kaip turi būti paskirstytos escrow laikomos lėšos.
 
----
+**Išmanioji sutartis (FreelanceEscrow)**<br/> 
+Veikia kaip automatinis tarpininkas: saugo lėšas escrow režimu, valdo projekto būsenas ir vykdo ETH pervedimus pagal iš anksto apibrėžtas taisykles.
+
 
 ## 4. Išmaniosios sutarties logika
 
+Išmanioji sutartis FreelanceEscrow apibrėžia aiškią projekto vykdymo seką nuo projekto sukūrimo iki galutinio atsiskaitymo arba ginčo išsprendimo.
+
+Projekto eiga:
 1. Klientas sukuria projektą nurodydamas freelancerio adresą, arbitro adresą ir projekto kainą.
-2. Klientas perveda lėšas į escrow naudodamas `fundProject`.
-3. Freelanceris priima projektą naudodamas `acceptProject`.
-4. Freelanceris atlieka darbą ir pateikia rezultatą naudodamas `submitWork`.
-5. Klientas gali patvirtinti darbą (`approveWork`) arba inicijuoti ginčą (`raiseDispute`).
-6. Patvirtinus darbą, lėšos pervedamos freelancer’iui.
-7. Ginčo atveju arbitras paskirsto lėšas naudodamas `resolveDispute`.
+2. Klientas finansuoja projektą, pervesdamas ETH lėšas į escrow naudodamas `fundProject`.
+3. Freelancer’is patvirtina dalyvavimą projekte naudodamas `acceptProject`.
+4. Atlikęs darbą, freelancer’is pateikia rezultatą naudodamas `submitWork`.
+5. Klientas peržiūri pateiktą darbą ir:
+    - patvirtina darbą naudodamas `approveWork`.
+    - inicijuoja ginčą naudodamas `raiseDispute`.
+6. Patvirtinus darbą, išmanioji sutartis automatiškai perveda lėšas freelancer’iui.
+7. Ginčo atveju arbitras priima sprendimą ir paskirsto escrow laikomas lėšas naudodamas `resolveDispute`.
 
 ---
 
 ## 5. Projekto būsenos
 
-Created – projektas sukurtas, lėšos nepervestos  
-Funded – klientas pervedė lėšas į escrow  
-InProgress – freelanceris priėmė projektą  
-Submitted – freelanceris pateikė atliktą darbą  
-Completed – darbas patvirtintas, lėšos pervestos freelancer’iui  
-Cancelled – projektas atšauktas  
-Disputed – inicijuotas ginčas  
-Resolved – arbitras priėmė sprendimą
+Projekto eiga skirstoma į atskirus etapus, kurie parodo, kuriame vykdymo taške šiuo metu yra projektas – nuo sukūrimo iki užbaigimo arba ginčo išsprendimo.
 
----
+- *Created* – projektas sukurtas, tačiau lėšos dar nepervestos
+- *Funded* – klientas pervedė sutartą sumą į escrow
+- *InProgress* – freelancer’is priėmė projektą ir pradėjo darbą
+- *Submitted* – freelancer’is pateikė atlikto darbo rezultatą
+- *Completed* – darbas patvirtintas, lėšos pervestos freelancer’iui
+- Cancelled – projektas nutrauktas
+- *Disputed* – tarp kliento ir freelancer’io inicijuotas ginčas
+- *Resolved* – ginčas išspręstas arbitro sprendimu, lėšos paskirstytos
 
 ## 6. Tipiniai scenarijai
 
@@ -80,7 +95,6 @@ Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos 
 3. Teisėjas išnagrinėja ginčą.
 4. Teisėjas paskirsto lėšas tarp kliento ir freelancerio.
 
----
 
 ## 7. Sekų diagramos (Sequence Diagrams)
 
@@ -88,32 +102,27 @@ Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos 
 
 Šiame skyriuje pateikiama tipinė decentralizuotos „freelance“ sutarties vykdymo eiga, kai klientas užsako darbą iš freelancerio, o procesą prižiūri arbitras. Visi veiksmai atliekami per išmaniąją sutartį (Smart Contract), kuri užtikrina skaidrumą, lėšų saugumą ir automatinį atsiskaitymą.
 
-Vykdymo etapai
+#### Vykdymo etapai:
 
-Projekto sukūrimas
-Klientas sukuria naują projektą išmaniojoje sutartyje, nurodydamas:
+1. Projekto sukūrimas
+Klientas sukuria naują projektą išmaniojoje sutartyje, nurodydamas:<br /> 
+- freelancerio adresą,
+- arbitro adresą,
+- sutartą atlygio sumą (ETH).
 
-freelancerio adresą,
-
-arbitro adresą,
-
-sutartą atlygio sumą (ETH).
-
-Projekto finansavimas
+2. Projekto finansavimas<br /> 
 Klientas perveda sutartą ETH sumą į išmaniąją sutartį. Lėšos yra „užšaldomos“ (escrow) iki projekto pabaigos.
 
-Projekto patvirtinimas freelancerio
+3. Projekto patvirtinimas freelancerio<br /> 
 Freelanceris patvirtina, kad sutinka su projekto sąlygomis ir pradeda darbą.
 
-Darbo pateikimas
+4. Darbo pateikimas<br /> 
 Freelanceris pateikia atlikto darbo įrodymą (pvz., „hash“ reikšmę), kuri leidžia užfiksuoti, kad darbas buvo perduotas klientui.
 
-Darbo patvirtinimas ir atsiskaitymas
-Klientui patvirtinus, kad darbas atliktas tinkamai, išmanioji sutartis:
-
-automatiškai perveda ETH freelanceriųi,
-
-pažymi projektą kaip užbaigtą.
+5. Darbo patvirtinimas ir atsiskaitymas <br /> 
+Klientui patvirtinus, kad darbas atliktas tinkamai, išmanioji sutartis:<br /> 
+- automatiškai perveda ETH freelanceriųi,
+- pažymi projektą kaip užbaigtą.
 
 #### Sekos diagrama
 ```mermaid
@@ -140,19 +149,14 @@ sequenceDiagram
     Contract-->>Client: ProjectCompleted
 ```
 ### 7.2 Ginčo scenarijaus seka
-Ši diagrama vaizduoja scenarijų, kai klientas nėra patenkintas pateiktu darbu ir inicijuoja ginčą. Šiuo atveju sprendimą priima teisėjas (arbiteris), kuris paskirsto užšaldytas lėšas tarp kliento ir freelancerio pagal priimtą sprendimą.
+Ši diagrama vaizduoja scenarijų, kai klientas nėra patenkintas pateiktu darbu ir inicijuoja ginčą. Šiuo atveju sprendimą priima teisėjas, kuris paskirsto užšaldytas lėšas tarp kliento ir freelancerio pagal priimtą sprendimą.
 
-Vykdymo eiga
-
-Freelanceris pateikia atliktą darbą į išmaniąją sutartį.
-
-Klientas, nesutikdamas su darbo kokybe ar sąlygomis, inicijuoja ginčą.
-
-Išmanioji sutartis užregistruoja ginčą sistemoje.
-
-Teisėjas išnagrinėja situaciją ir paskirsto lėšas.
-
-Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
+*Vykdymo eiga:*
+- Freelanceris pateikia atliktą darbą į išmaniąją sutartį.
+- Klientas, nesutikdamas su darbo kokybe ar sąlygomis, inicijuoja ginčą.
+- Išmanioji sutartis užregistruoja ginčą sistemoje.
+- Teisėjas išnagrinėja situaciją ir paskirsto lėšas.
+- Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
 
 #### Sekos diagrama:
 ```mermaid
