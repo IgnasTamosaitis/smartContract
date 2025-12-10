@@ -17,9 +17,9 @@ contract PredictionPool is VRFConsumerBaseV2 {
     uint32 public numRandomWords = 1;
 
     // --- Game config ---
-    uint256 public entryFee = 0.01 ether;
+    uint256 public entryFee = 0.001 ether; // Reduced to 0.001 ETH for testing
     uint256 public platformFeePercent = 5; // 5%
-    uint256 public maxPlayers = 20;
+    uint256 public maxPlayers = 2; // Changed to 2 for easy testing
 
     // --- Rounds ---
     uint256 public currentRoundId;
