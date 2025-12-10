@@ -9,7 +9,7 @@ contract PredictionPool is VRFConsumerBaseV2 {
     // Coordinator & keyHash are fixed for Sepolia VRF v2
     VRFCoordinatorV2Interface private immutable COORDINATOR;
     address public immutable owner;
-    uint64 public immutable subscriptionId;
+    uint256 public immutable subscriptionId;
 
     bytes32 public immutable keyHash;
     uint32 public callbackGasLimit = 250000;
@@ -48,7 +48,7 @@ contract PredictionPool is VRFConsumerBaseV2 {
         _;
     }
 
-    constructor(uint64 _subscriptionId)
+    constructor(uint256 _subscriptionId)
         VRFConsumerBaseV2(0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625) // Sepolia VRF v2 coordinator
     {
         COORDINATOR = VRFCoordinatorV2Interface(
@@ -92,7 +92,7 @@ contract PredictionPool is VRFConsumerBaseV2 {
 
         uint256 requestId = COORDINATOR.requestRandomWords(
             keyHash,
-            subscriptionId,
+            uint64(subscriptionId),
             requestConfirmations,
             callbackGasLimit,
             numRandomWords

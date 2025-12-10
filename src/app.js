@@ -2,8 +2,8 @@ let web3;
 let predictionPool;
 let userAccount;
 
-// TODO: Replace with your deployed PredictionPool address on Sepolia
-const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+// Deployed PredictionPool address on Sepolia
+const CONTRACT_ADDRESS = "0x504e2d0BF8e542Deaac302f7FDb255b79C7dAD52";
 
 // Minimal ABI for frontend interaction
 const predictionPoolAbi = [

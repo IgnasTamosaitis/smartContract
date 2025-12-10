@@ -11,9 +11,9 @@ async function main() {
   const PredictionPool = await hre.ethers.getContractFactory("PredictionPool");
   const pool = await PredictionPool.deploy(subscriptionId);
 
-  await pool.deployed();
+  await pool.waitForDeployment();
 
-  console.log("PredictionPool deployed to:", pool.address);
+  console.log("PredictionPool deployed to:", await pool.getAddress());
 }
 
 main().catch((error) => {
