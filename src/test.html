@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test - PredictionPool</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <h1>PredictionPool Test</h1>
+    
+    <div id="status">Loading...</div>
+    <button id="connectBtn">Connect MetaMask</button>
+    <button id="testBtn" disabled>Test Contract</button>
+    <button id="enterBtn" disabled>Enter Round (0.01 ETH)</button>
+    
+    <div id="info"></div>
+    <div id="result"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <script>
+        const CONTRACT_ADDRESS = "0x504e2d0BF8e542Deaac302f7FDb255b79C7dAD52";
+        
+        // Minimal ABI
+        const ABI = [
+            {
+                "inputs": [],
+                "name": "currentRoundId",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "entryFee",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "enterRound",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getCurrentRoundInfo",
+                "outputs": [
+                    {"internalType": "uint256", "name": "roundId", "type": "uint256"},
+                    {"internalType": "bool", "name": "isOpen", "type": "bool"},
+                    {"internalType": "uint256", "name": "playerCount", "type": "uint256"},
+                    {"internalType": "uint256", "name": "pool", "type": "uint256"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        
+        let web3;
+        let contract;
+        let account;
+        
+        document.getElementById('connectBtn').onclick = async () => {
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    alert('Please install MetaMask!');
+                    return;
+                }
+                
+                web3 = new Web3(window.ethereum);
+                
+                // Request accounts
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+                
+                // Check network
+                const chainId = await web3.eth.getChainId();
+                document.getElementById('status').innerHTML = `
+                    Connected: ${account}<br>
+                    Chain ID: ${chainId} ${chainId === 11155111 ? '✅ (Sepolia)' : '❌ (Wrong network! Switch to Sepolia)'}
+                `;
+                
+                if (chainId !== 11155111) {
+                    alert('Please switch to Sepolia network in MetaMask!');
+                    return;
+                }
+                
+                // Initialize contract
+                contract = new web3.eth.Contract(ABI, CONTRACT_ADDRESS);
+                document.getElementById('testBtn').disabled = false;
+                document.getElementById('enterBtn').disabled = false;
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+            }
+        };
+        
+        document.getElementById('testBtn').onclick = async () => {
+            try {
+                document.getElementById('info').innerHTML = 'Loading contract data...';
+                
+                // Test 1: Get current round ID
+                const roundId = await contract.methods.currentRoundId().call();
+                console.log('Current Round ID:', roundId);
+                
+                // Test 2: Get entry fee
+                const fee = await contract.methods.entryFee().call();
+                const feeEth = web3.utils.fromWei(fee, 'ether');
+                console.log('Entry Fee:', feeEth, 'ETH');
+                
+                // Test 3: Get current round info
+                const info = await contract.methods.getCurrentRoundInfo().call();
+                console.log('Round Info:', info);
+                
+                document.getElementById('info').innerHTML = `
+                    <h3>✅ Contract Working!</h3>
+                    <p><b>Current Round:</b> ${info.roundId}</p>
+                    <p><b>Is Open:</b> ${info.isOpen ? 'Yes' : 'No'}</p>
+                    <p><b>Players:</b> ${info.playerCount}</p>
+                    <p><b>Pool:</b> ${web3.utils.fromWei(info.pool, 'ether')} ETH</p>
+                    <p><b>Entry Fee:</b> ${feeEth} ETH</p>
+                `;
+                
+            } catch (error) {
+                console.error('Contract call error:', error);
+                document.getElementById('info').innerHTML = `
+                    <h3>❌ Error</h3>
+                    <p>${error.message}</p>
+                    <p>Check console (F12) for details</p>
+                `;
+            }
+        };
+        
+        document.getElementById('enterBtn').onclick = async () => {
+            try {
+                document.getElementById('result').innerHTML = 'Sending transaction...';
+                
+                const fee = await contract.methods.entryFee().call();
+                
+                const tx = await contract.methods.enterRound().send({
+                    from: account,
+                    value: fee,
+                    gas: 200000
+                });
+                
+                console.log('Transaction:', tx);
+                
+                document.getElementById('result').innerHTML = `
+                    <h3>✅ Success!</h3>
+                    <p>Transaction Hash: ${tx.transactionHash}</p>
+                    <p><a href="https://sepolia.etherscan.io/tx/${tx.transactionHash}" target="_blank">View on Etherscan</a></p>
+                `;
+                
+                // Refresh info
+                setTimeout(() => {
+                    document.getElementById('testBtn').click();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Transaction error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h3>❌ Transaction Failed</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

@@ -5,13 +5,8 @@ let userAccount;
 // Deployed PredictionPool address on Sepolia
 const CONTRACT_ADDRESS = "0x504e2d0BF8e542Deaac302f7FDb255b79C7dAD52";
 
-// Minimal ABI for frontend interaction
+// Simplified ABI - only what we need
 const predictionPoolAbi = [
-  {
-    inputs: [{ internalType: "uint64", name: "_subscriptionId", type: "uint64" }],
-    stateMutability: "nonpayable",
-    type: "constructor"
-  },
   {
     inputs: [],
     name: "enterRound",
@@ -32,20 +27,6 @@ const predictionPoolAbi = [
     type: "function"
   },
   {
-    inputs: [{ internalType: "uint256", name: "roundId", type: "uint256" }],
-    name: "getRoundInfo",
-    outputs: [
-      { internalType: "bool", name: "isOpen", type: "bool" },
-      { internalType: "bool", name: "fulfilled", type: "bool" },
-      { internalType: "uint256", name: "playerCount", type: "uint256" },
-      { internalType: "uint256", name: "pool", type: "uint256" },
-      { internalType: "address", name: "winner", type: "address" },
-      { internalType: "uint256", name: "prize", type: "uint256" }
-    ],
-    stateMutability: "view",
-    type: "function"
-  },
-  {
     inputs: [],
     name: "entryFee",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
@@ -61,40 +42,15 @@ const predictionPoolAbi = [
   },
   {
     inputs: [],
-    name: "lastCompletedRoundId",
+    name: "maxPlayers",
     outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function"
-  },
-  // Events (not strictly needed for polling, but here for completeness)
-  {
-    anonymous: false,
-    inputs: [{ indexed: true, internalType: "uint256", name: "roundId", type: "uint256" }],
-    name: "RoundOpened",
-    type: "event"
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "roundId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "player", type: "address" }
-    ],
-    name: "RoundEntered",
-    type: "event"
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: "uint256", name: "roundId", type: "uint256" },
-      { indexed: true, internalType: "address", name: "winner", type: "address" },
-      { indexed: false, internalType: "uint256", name: "prize", type: "uint256" }
-    ],
-    name: "RoundWinner",
-    type: "event"
   }
 ];
 
 let totalSpinDistance = 0;
+let maxPlayers = 20;
 
 // ---------- Init & MetaMask ----------
 
@@ -107,11 +63,27 @@ async function init() {
   web3 = new Web3(window.ethereum);
 
   try {
+    // Request accounts
     await ethereum.request({ method: "eth_requestAccounts" });
     const accounts = await web3.eth.getAccounts();
     userAccount = accounts[0];
 
+    // Check network
+    const chainId = await web3.eth.getChainId();
+    if (chainId !== 11155111) {
+      alert("Please switch to Sepolia network in MetaMask!");
+      return;
+    }
+
+    // Initialize contract
     predictionPool = new web3.eth.Contract(predictionPoolAbi, CONTRACT_ADDRESS);
+
+    // Get max players
+    try {
+      maxPlayers = await predictionPool.methods.maxPlayers().call();
+    } catch (e) {
+      maxPlayers = 20; // default
+    }
 
     await updateUserInfo();
     await updateEntryFee();
@@ -122,10 +94,12 @@ async function init() {
 
     document.getElementById("spin-button").disabled = false;
 
-    console.log("Connected account:", userAccount);
+    console.log("✅ Connected:", userAccount);
+    console.log("✅ Network: Sepolia");
+    console.log("✅ Contract:", CONTRACT_ADDRESS);
   } catch (err) {
-    console.error("User denied connection or error:", err);
-    alert("Could not connect to MetaMask. Check console for details.");
+    console.error("Connection error:", err);
+    alert("Could not connect to MetaMask. Error: " + err.message);
   }
 }
 
@@ -142,24 +116,37 @@ async function updateUserInfo() {
 }
 
 async function updateEntryFee() {
-  const feeWei = await predictionPool.methods.entryFee().call();
-  const feeEth = parseFloat(web3.utils.fromWei(feeWei, "ether")).toFixed(4);
-  document.getElementById("entry-fee").textContent = `${feeEth} ETH`;
+  try {
+    const feeWei = await predictionPool.methods.entryFee().call();
+    const feeEth = parseFloat(web3.utils.fromWei(feeWei, "ether")).toFixed(4);
+    document.getElementById("entry-fee").textContent = `${feeEth} ETH`;
+  } catch (error) {
+    console.error("Error getting entry fee:", error);
+    document.getElementById("entry-fee").textContent = "0.01 ETH";
+  }
 }
 
 async function updateRoundInfo() {
-  const info = await predictionPool.methods.getCurrentRoundInfo().call();
-  const [roundId, isOpen, playerCount, poolWei] = info;
-  const poolEth = parseFloat(web3.utils.fromWei(poolWei, "ether")).toFixed(4);
+  try {
+    const info = await predictionPool.methods.getCurrentRoundInfo().call();
+    const poolEth = parseFloat(web3.utils.fromWei(info.pool, "ether")).toFixed(4);
 
-  document.getElementById("round-id").textContent = `#${roundId}`;
-  document.getElementById("round-players").textContent = `${playerCount} / 20`;
-  document.getElementById("round-pool").textContent = `${poolEth} ETH`;
+    document.getElementById("round-id").textContent = `#${info.roundId}`;
+    document.getElementById("round-players").textContent = `${info.playerCount} / ${maxPlayers}`;
+    document.getElementById("round-pool").textContent = `${poolEth} ETH`;
 
-  const statusEl = document.getElementById("status");
-  statusEl.textContent = isOpen
-    ? "Round is open. Press Spin to join."
-    : "Round is closed. Waiting for Chainlink VRF to pick a winner...";
+    const statusEl = document.getElementById("status");
+    if (info.isOpen) {
+      statusEl.textContent = "Round is open. Press Spin to join!";
+      statusEl.style.color = "#4caf50";
+    } else {
+      statusEl.textContent = "Round is closed. Waiting for Chainlink VRF to pick a winner...";
+      statusEl.style.color = "#ff9800";
+    }
+  } catch (error) {
+    console.error("Error getting round info:", error);
+    document.getElementById("status").textContent = "Error loading round info. Check console.";
+  }
 }
 
 // ---------- Wheel / Animation ----------
@@ -191,7 +178,7 @@ function spinWheelVisual() {
     const segments = Array.from(document.querySelectorAll(".segment"));
     const segmentWidth = 150;
 
-    // Just random visual spin; not linked to real on-chain randomness
+    // Random visual spin
     const randomNumber = Math.floor(Math.random() * segments.length);
     const randomOffset = Math.floor(Math.random() * segmentWidth);
     const spinDistance = segmentWidth * 14 + segmentWidth * randomNumber + randomOffset;
@@ -201,116 +188,87 @@ function spinWheelVisual() {
     spinner.style.transform = `translateX(-${totalSpinDistance}px)`;
 
     setTimeout(() => {
-      const resultIndex = Math.floor(
-        (totalSpinDistance % (segmentWidth * segments.length)) / segmentWidth
-      );
-
-      const winningSegment = segments[resultIndex];
-
-      segments.forEach((seg) => seg.classList.remove("highlight"));
-      winningSegment.classList.add("highlight");
-
       resolve();
-    }, 4200);
+    }, 4000);
   });
 }
 
-// ---------- Interaction ----------
+// ---------- Enter Round ----------
 
-function setupEventListeners() {
-  const spinButton = document.getElementById("spin-button");
-  const checkWinnerButton = document.getElementById("check-winner-button");
-
-  spinButton.addEventListener("click", async () => {
-    await onSpinClicked();
-  });
-
-  checkWinnerButton.addEventListener("click", async () => {
-    await checkLatestWinner();
-  });
-
-  // Refresh info when accounts change
-  if (window.ethereum) {
-    ethereum.on("accountsChanged", async (accounts) => {
-      userAccount = accounts[0];
-      await updateUserInfo();
-    });
-
-    ethereum.on("chainChanged", () => {
-      window.location.reload();
-    });
-  }
-}
-
-async function onSpinClicked() {
-  const statusEl = document.getElementById("status");
-  statusEl.textContent = "Sending transaction to join the round...";
-
-  const entryFeeWei = await predictionPool.methods.entryFee().call();
-
-  try {
-    await predictionPool.methods.enterRound().send({
-      from: userAccount,
-      value: entryFeeWei
-    });
-
-    statusEl.textContent = "You joined the round! Spinning wheel...";
-    await updateUserInfo();
-    await updateRoundInfo();
-
-    await spinWheelVisual();
-
-    statusEl.textContent =
-      "You are in! When the round fills, Chainlink VRF will pick a winner. Check 'Latest Completed Round'.";
-  } catch (err) {
-    console.error("Error joining round:", err);
-    statusEl.textContent = "Transaction failed or was rejected.";
-  }
-}
-
-async function checkLatestWinner() {
-  const id = await predictionPool.methods.lastCompletedRoundId().call();
-  const roundIdNum = Number(id);
-
-  const lastRoundIdEl = document.getElementById("last-round-id");
-  const lastWinnerEl = document.getElementById("last-round-winner");
-  const lastPrizeEl = document.getElementById("last-round-prize");
-  const lastPoolEl = document.getElementById("last-round-pool");
-  const lastPlayersEl = document.getElementById("last-round-players");
-  const winMessageEl = document.getElementById("win-message");
-
-  if (roundIdNum === 0) {
-    lastRoundIdEl.textContent = "Round: –";
-    lastWinnerEl.textContent = "Winner: –";
-    lastPrizeEl.textContent = "Prize: –";
-    lastPoolEl.textContent = "Pool: –";
-    lastPlayersEl.textContent = "Players: –";
-    winMessageEl.textContent = "No completed rounds yet.";
+async function enterRound() {
+  if (!predictionPool || !userAccount) {
+    alert("Please connect MetaMask first.");
     return;
   }
 
-  const info = await predictionPool.methods.getRoundInfo(roundIdNum).call();
-  const [isOpen, fulfilled, playerCount, poolWei, winner, prizeWei] = info;
+  try {
+    document.getElementById("status").textContent = "Preparing transaction...";
+    document.getElementById("spin-button").disabled = true;
 
-  const poolEth = parseFloat(web3.utils.fromWei(poolWei, "ether")).toFixed(4);
-  const prizeEth = parseFloat(web3.utils.fromWei(prizeWei, "ether")).toFixed(4);
+    // Get entry fee
+    const feeWei = await predictionPool.methods.entryFee().call();
+    
+    // Start visual spin
+    spinWheelVisual();
+    document.getElementById("status").textContent = "Sending transaction to blockchain...";
 
-  lastRoundIdEl.textContent = `Round: #${roundIdNum}`;
-  lastWinnerEl.textContent = `Winner: ${winner}`;
-  lastPrizeEl.textContent = `Prize: ${prizeEth} ETH`;
-  lastPoolEl.textContent = `Pool: ${poolEth} ETH`;
-  lastPlayersEl.textContent = `Players: ${playerCount}`;
+    // Send transaction
+    const tx = await predictionPool.methods.enterRound().send({
+      from: userAccount,
+      value: feeWei,
+      gas: 200000
+    });
 
-  if (!fulfilled) {
-    winMessageEl.textContent =
-      "Round closed but randomness not fulfilled yet. Wait a bit and check again.";
-  } else if (winner.toLowerCase() === userAccount.toLowerCase()) {
-    winMessageEl.textContent = "🎉 YOU WON the last round!";
-  } else {
-    winMessageEl.textContent = "You did not win the last round. Try again!";
+    console.log("✅ Transaction successful:", tx.transactionHash);
+    
+    document.getElementById("status").innerHTML = `
+      ✅ Success! 
+      <a href="https://sepolia.etherscan.io/tx/${tx.transactionHash}" target="_blank" style="color: #4caf50;">
+        View on Etherscan
+      </a>
+    `;
+
+    // Wait a bit then refresh info
+    setTimeout(async () => {
+      await updateUserInfo();
+      await updateRoundInfo();
+      document.getElementById("spin-button").disabled = false;
+    }, 3000);
+
+  } catch (error) {
+    console.error("Transaction error:", error);
+    
+    let errorMsg = "Transaction failed. ";
+    if (error.message.includes("user rejected")) {
+      errorMsg += "You rejected the transaction.";
+    } else if (error.message.includes("Round closed")) {
+      errorMsg += "Round is closed. Please wait for new round.";
+    } else if (error.message.includes("Invalid entry fee")) {
+      errorMsg += "Invalid entry fee amount.";
+    } else {
+      errorMsg += error.message;
+    }
+    
+    document.getElementById("status").textContent = "❌ " + errorMsg;
+    document.getElementById("status").style.color = "#f44336";
+    document.getElementById("spin-button").disabled = false;
   }
 }
 
-// ---------- Bootstrap ----------
+// ---------- Event Listeners ----------
+
+function setupEventListeners() {
+  const spinButton = document.getElementById("spin-button");
+  spinButton.addEventListener("click", enterRound);
+
+  // Auto-refresh every 10 seconds
+  setInterval(async () => {
+    if (userAccount && predictionPool) {
+      await updateRoundInfo();
+    }
+  }, 10000);
+}
+
+// ---------- Page Load ----------
 
 window.addEventListener("load", init);
