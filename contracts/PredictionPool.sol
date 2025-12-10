@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFCoordinatorV2Plus.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
 
-contract PredictionPool is VRFConsumerBaseV2 {
+contract PredictionPool is VRFConsumerBaseV2Plus {
     // --- Chainlink VRF config (Sepolia) ---
-    // Coordinator & keyHash are fixed for Sepolia VRF v2
-    VRFCoordinatorV2Interface private immutable COORDINATOR;
-    address public immutable owner;
+    // Coordinator & keyHash are fixed for Sepolia VRF v2.5
+    IVRFCoordinatorV2Plus private immutable COORDINATOR;
+    address public immutable contractOwner;
     uint256 public immutable subscriptionId;
 
     bytes32 public immutable keyHash;
-    uint32 public callbackGasLimit = 250000;
+    uint32 public callbackGasLimit = 40000; // Absolute minimum
     uint16 public requestConfirmations = 3;
     uint32 public numRandomWords = 1;
 
@@ -43,20 +44,15 @@ contract PredictionPool is VRFConsumerBaseV2 {
     event RoundClosed(uint256 indexed roundId, uint256 requestId);
     event RoundWinner(uint256 indexed roundId, address indexed winner, uint256 prize);
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
-
     constructor(uint256 _subscriptionId)
-        VRFConsumerBaseV2(0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625) // Sepolia VRF v2 coordinator
+        VRFConsumerBaseV2Plus(0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B) // Sepolia VRF v2.5 coordinator
     {
-        COORDINATOR = VRFCoordinatorV2Interface(
-            0x8103B0A8A00be2DDC778e6e7eaa21791Cd364625
+        COORDINATOR = IVRFCoordinatorV2Plus(
+            0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B
         );
-        keyHash = 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c;
+        keyHash = 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae; // v2.5 key hash (500 gwei)
         subscriptionId = _subscriptionId;
-        owner = msg.sender;
+        contractOwner = msg.sender;
 
         currentRoundId = 1;
         rounds[currentRoundId].isOpen = true;
@@ -88,16 +84,21 @@ contract PredictionPool is VRFConsumerBaseV2 {
         require(r.isOpen, "Already closed");
         require(r.players.length > 0, "No players");
 
-        r.isOpen = false;
-
+        // Request randomness FIRST - if this fails, the whole transaction reverts
+        // and round stays open
         uint256 requestId = COORDINATOR.requestRandomWords(
-            keyHash,
-            uint64(subscriptionId),
-            requestConfirmations,
-            callbackGasLimit,
-            numRandomWords
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: keyHash,
+                subId: subscriptionId,
+                requestConfirmations: requestConfirmations,
+                callbackGasLimit: callbackGasLimit,
+                numWords: numRandomWords,
+                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false})) // Back to LINK with minimal gas
+            })
         );
 
+        // Only close round if VRF request succeeded
+        r.isOpen = false;
         requestIdToRoundId[requestId] = roundId;
 
         emit RoundClosed(roundId, requestId);
@@ -107,7 +108,7 @@ contract PredictionPool is VRFConsumerBaseV2 {
 
     function fulfillRandomWords(
         uint256 requestId,
-        uint256[] memory randomWords
+        uint256[] calldata randomWords
     ) internal override {
         uint256 roundId = requestIdToRoundId[requestId];
         Round storage r = rounds[roundId];
@@ -129,7 +130,7 @@ contract PredictionPool is VRFConsumerBaseV2 {
         lastCompletedRoundId = roundId;
 
         // Effects already done, now interactions
-        (bool feeOk, ) = owner.call{value: fee}("");
+        (bool feeOk, ) = contractOwner.call{value: fee}("");
         require(feeOk, "Fee transfer failed");
 
         (bool prizeOk, ) = winner.call{value: prize}("");
@@ -158,6 +159,13 @@ contract PredictionPool is VRFConsumerBaseV2 {
     function setPlatformFeePercent(uint256 newPercent) external onlyOwner {
         require(newPercent <= 20, "Fee too high");
         platformFeePercent = newPercent;
+    }
+
+    /// @notice Emergency function: Open a new round if current is stuck
+    function openNewRound() external onlyOwner {
+        currentRoundId += 1;
+        rounds[currentRoundId].isOpen = true;
+        emit RoundOpened(currentRoundId);
     }
 
     function setCallbackGasLimit(uint32 newLimit) external onlyOwner {
@@ -201,9 +209,9 @@ contract PredictionPool is VRFConsumerBaseV2 {
     }
 
     // Rescue ETH accidentally sent directly to contract (not part of pools).
-    function rescueEth(uint256 amount) external onlyOwner {
+    function rescueFunds(uint256 amount) external onlyOwner {
         require(address(this).balance >= amount, "Insufficient");
-        (bool ok, ) = owner.call{value: amount}("");
+        (bool ok, ) = contractOwner.call{value: amount}("");
         require(ok, "Rescue failed");
     }
 

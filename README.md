@@ -11,6 +11,7 @@
 ### Verslo Logika
 
 Tai decentralizuota loterijos sistema, kur:
+
 - Žaidėjai sumoka fiksuotą įnašą (0.01 ETH) norėdami dalyvauti raunde
 - Kai pasiekiamas maksimalus žaidėjų skaičius (20), raundas uždaromas
 - Chainlink VRF v2 Sepolia tinkle generuoja patikrintą atsitiktinį skaičių
@@ -114,6 +115,7 @@ cp .env.example .env
 ```
 
 Reikalingi parametrai:
+
 - **SEPOLIA_RPC_URL**: Gaukite iš https://www.alchemy.com/ arba https://infura.io/
 - **PRIVATE_KEY**: Jūsų MetaMask wallet private key (pradeda 0x)
 - **VRF_SUBSCRIPTION_ID**: Chainlink VRF subscription ID iš https://vrf.chain.link/
@@ -121,6 +123,7 @@ Reikalingi parametrai:
 ### 3. Gaukite Sepolia Test ETH
 
 Naudokite vieną iš šių faucet'ų:
+
 - https://www.alchemy.com/faucets/ethereum-sepolia (rekomenduojama)
 - https://cloud.google.com/application/web3/faucet/ethereum/sepolia
 - https://faucet.quicknode.com/ethereum/sepolia
@@ -158,9 +161,11 @@ Išsaugokite contract address, kurį pamatysite console!
 ### 8. Atnaujinkite Frontend
 
 Atidarykite `src/app.js` ir pakeiskite:
+
 ```javascript
 const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
 ```
+
 Į tikrą address, kurį gavote deploying.
 
 ### 9. Paleiskite Frontend
@@ -202,6 +207,7 @@ npx hardhat run scripts/deploy.js --network localhost
 ### 1. Peržiūrėkite Contract Etherscan'e
 
 Po deployment eikite į:
+
 ```
 https://sepolia.etherscan.io/address/YOUR_CONTRACT_ADDRESS
 ```
@@ -224,6 +230,7 @@ npx hardhat verify --network sepolia YOUR_CONTRACT_ADDRESS "VRF_SUBSCRIPTION_ID"
 ```
 
 Po verification galėsite:
+
 - Skaityti contract code Etherscan'e
 - Naudoti "Read Contract" ir "Write Contract" funkcijas
 - Matyti dekompiliuotą kodą
@@ -241,6 +248,7 @@ Po verification galėsite:
 ### Išplėstas Funkcionalumas (Papildomam Balui)
 
 Galite pridėti:
+
 - 📊 **Statistics Dashboard** - grafikai su apyvartos statistika
 - 🎨 **Improved Design** - modernus UI/UX su animacijomis
 - 📱 **Mobile Responsive** - pritaikytas mobiliems įrenginiams
@@ -253,11 +261,13 @@ Galite pridėti:
 ## Kaip Gauti Papildomus Balus
 
 ✅ **Verslo Modelio Aprašymas (iki +0.5 balo)**:
+
 - ✓ Aiškiai aprašyti veikėjai
 - ✓ Sequence diagramos
 - ✓ Verslo logikos paaiškinimas
 
 ✅ **Išplėstas Frontend (iki +1 balo)**:
+
 - Modernūs dizainas su CSS framework (Bootstrap/Tailwind)
 - Real-time updates su WebSocket arba polling
 - Grafikai ir statistika (Chart.js)
@@ -268,6 +278,7 @@ Galite pridėti:
 ## Saugumas
 
 ⚠️ **SVARBU**:
+
 - **NIEKADA** nedarykite commit `.env` failo į Git
 - **NIEKADA** nesidalinkite savo PRIVATE_KEY
 - Naudokite test wallet su tik test ETH
@@ -276,16 +287,19 @@ Galite pridėti:
 ## Troubleshooting
 
 ### Contract nepriima enterRound()
+
 - Patikrinkite, ar raundas atidarytas
 - Patikrinkite, ar siunčiate teisingą sumą (0.01 ETH)
 - Patikrinkite, ar neviršijate maxPlayers
 
 ### VRF neveikia
+
 - Įsitikinkite, kad subscription funded su LINK
 - Įsitikinkite, kad contract pridėtas kaip consumer
 - Palaukite 2-3 blokus po requestRandomWords()
 
 ### MetaMask nepatvirtina transakcijų
+
 - Patikrinkite, ar esate Sepolia network
 - Patikrinkite, ar turite pakankamai Sepolia ETH gas'ui
 - Pabandykite reset MetaMask account (Settings > Advanced > Reset Account)
@@ -293,12 +307,14 @@ Galite pridėti:
 ## Papildoma Informacija
 
 ### Gas Costs (Sepolia)
+
 - Deploy: ~2-3M gas
 - enterRound(): ~50-70k gas
 - requestRandomWords(): ~200k gas
 - fulfillRandomWords(): ~100-150k gas
 
 ### Blockchain Explorers
+
 - Sepolia Etherscan: https://sepolia.etherscan.io/
 - Chainlink VRF Dashboard: https://vrf.chain.link/
 

@@ -3,7 +3,7 @@ let predictionPool;
 let userAccount;
 
 // Deployed PredictionPool address on Sepolia
-const CONTRACT_ADDRESS = "0xD483fb9833C16BaB1B2a63b958227eC59e7D6453";
+const CONTRACT_ADDRESS = "0x4addA31AB38bc2B1098638D118C8a0c1ec3ED954";
 
 // Simplified ABI - only what we need
 const predictionPoolAbi = [
