@@ -1,0 +1,316 @@
+let web3;
+let predictionPool;
+let userAccount;
+
+// TODO: Replace with your deployed PredictionPool address on Sepolia
+const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+
+// Minimal ABI for frontend interaction
+const predictionPoolAbi = [
+  {
+    inputs: [{ internalType: "uint64", name: "_subscriptionId", type: "uint64" }],
+    stateMutability: "nonpayable",
+    type: "constructor"
+  },
+  {
+    inputs: [],
+    name: "enterRound",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "getCurrentRoundInfo",
+    outputs: [
+      { internalType: "uint256", name: "roundId", type: "uint256" },
+      { internalType: "bool", name: "isOpen", type: "bool" },
+      { internalType: "uint256", name: "playerCount", type: "uint256" },
+      { internalType: "uint256", name: "pool", type: "uint256" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "roundId", type: "uint256" }],
+    name: "getRoundInfo",
+    outputs: [
+      { internalType: "bool", name: "isOpen", type: "bool" },
+      { internalType: "bool", name: "fulfilled", type: "bool" },
+      { internalType: "uint256", name: "playerCount", type: "uint256" },
+      { internalType: "uint256", name: "pool", type: "uint256" },
+      { internalType: "address", name: "winner", type: "address" },
+      { internalType: "uint256", name: "prize", type: "uint256" }
+    ],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "entryFee",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "currentRoundId",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  {
+    inputs: [],
+    name: "lastCompletedRoundId",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function"
+  },
+  // Events (not strictly needed for polling, but here for completeness)
+  {
+    anonymous: false,
+    inputs: [{ indexed: true, internalType: "uint256", name: "roundId", type: "uint256" }],
+    name: "RoundOpened",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "roundId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "player", type: "address" }
+    ],
+    name: "RoundEntered",
+    type: "event"
+  },
+  {
+    anonymous: false,
+    inputs: [
+      { indexed: true, internalType: "uint256", name: "roundId", type: "uint256" },
+      { indexed: true, internalType: "address", name: "winner", type: "address" },
+      { indexed: false, internalType: "uint256", name: "prize", type: "uint256" }
+    ],
+    name: "RoundWinner",
+    type: "event"
+  }
+];
+
+let totalSpinDistance = 0;
+
+// ---------- Init & MetaMask ----------
+
+async function init() {
+  if (typeof window.ethereum === "undefined") {
+    alert("Please install MetaMask and connect to the Sepolia network.");
+    return;
+  }
+
+  web3 = new Web3(window.ethereum);
+
+  try {
+    await ethereum.request({ method: "eth_requestAccounts" });
+    const accounts = await web3.eth.getAccounts();
+    userAccount = accounts[0];
+
+    predictionPool = new web3.eth.Contract(predictionPoolAbi, CONTRACT_ADDRESS);
+
+    await updateUserInfo();
+    await updateEntryFee();
+    await updateRoundInfo();
+
+    setupWheelSegments();
+    setupEventListeners();
+
+    document.getElementById("spin-button").disabled = false;
+
+    console.log("Connected account:", userAccount);
+  } catch (err) {
+    console.error("User denied connection or error:", err);
+    alert("Could not connect to MetaMask. Check console for details.");
+  }
+}
+
+async function updateUserInfo() {
+  if (!userAccount || !web3) return;
+
+  const balanceWei = await web3.eth.getBalance(userAccount);
+  const balanceEth = parseFloat(web3.utils.fromWei(balanceWei, "ether")).toFixed(4);
+
+  const short = `${userAccount.slice(0, 6)}...${userAccount.slice(-4)}`;
+
+  document.getElementById("user-info").textContent = `User: ${short}`;
+  document.getElementById("user-balance").textContent = `User Balance: ${balanceEth} ETH`;
+}
+
+async function updateEntryFee() {
+  const feeWei = await predictionPool.methods.entryFee().call();
+  const feeEth = parseFloat(web3.utils.fromWei(feeWei, "ether")).toFixed(4);
+  document.getElementById("entry-fee").textContent = `${feeEth} ETH`;
+}
+
+async function updateRoundInfo() {
+  const info = await predictionPool.methods.getCurrentRoundInfo().call();
+  const [roundId, isOpen, playerCount, poolWei] = info;
+  const poolEth = parseFloat(web3.utils.fromWei(poolWei, "ether")).toFixed(4);
+
+  document.getElementById("round-id").textContent = `#${roundId}`;
+  document.getElementById("round-players").textContent = `${playerCount} / 20`;
+  document.getElementById("round-pool").textContent = `${poolEth} ETH`;
+
+  const statusEl = document.getElementById("status");
+  statusEl.textContent = isOpen
+    ? "Round is open. Press Spin to join."
+    : "Round is closed. Waiting for Chainlink VRF to pick a winner...";
+}
+
+// ---------- Wheel / Animation ----------
+
+function setupWheelSegments() {
+  const spinner = document.getElementById("spinner");
+  spinner.innerHTML = "";
+
+  const segments = [];
+  for (let i = 0; i < 15; i++) {
+    if (i === 0) {
+      segments.push({ name: "0", className: "green" });
+    } else {
+      segments.push({ name: String(i), className: i % 2 === 0 ? "red" : "black" });
+    }
+  }
+
+  segments.forEach((segment) => {
+    const div = document.createElement("div");
+    div.className = `segment ${segment.className}`;
+    div.textContent = segment.name;
+    spinner.appendChild(div);
+  });
+}
+
+function spinWheelVisual() {
+  return new Promise((resolve) => {
+    const spinner = document.getElementById("spinner");
+    const segments = Array.from(document.querySelectorAll(".segment"));
+    const segmentWidth = 150;
+
+    // Just random visual spin; not linked to real on-chain randomness
+    const randomNumber = Math.floor(Math.random() * segments.length);
+    const randomOffset = Math.floor(Math.random() * segmentWidth);
+    const spinDistance = segmentWidth * 14 + segmentWidth * randomNumber + randomOffset;
+
+    totalSpinDistance += spinDistance;
+    spinner.style.transition = "transform 4s ease-in-out";
+    spinner.style.transform = `translateX(-${totalSpinDistance}px)`;
+
+    setTimeout(() => {
+      const resultIndex = Math.floor(
+        (totalSpinDistance % (segmentWidth * segments.length)) / segmentWidth
+      );
+
+      const winningSegment = segments[resultIndex];
+
+      segments.forEach((seg) => seg.classList.remove("highlight"));
+      winningSegment.classList.add("highlight");
+
+      resolve();
+    }, 4200);
+  });
+}
+
+// ---------- Interaction ----------
+
+function setupEventListeners() {
+  const spinButton = document.getElementById("spin-button");
+  const checkWinnerButton = document.getElementById("check-winner-button");
+
+  spinButton.addEventListener("click", async () => {
+    await onSpinClicked();
+  });
+
+  checkWinnerButton.addEventListener("click", async () => {
+    await checkLatestWinner();
+  });
+
+  // Refresh info when accounts change
+  if (window.ethereum) {
+    ethereum.on("accountsChanged", async (accounts) => {
+      userAccount = accounts[0];
+      await updateUserInfo();
+    });
+
+    ethereum.on("chainChanged", () => {
+      window.location.reload();
+    });
+  }
+}
+
+async function onSpinClicked() {
+  const statusEl = document.getElementById("status");
+  statusEl.textContent = "Sending transaction to join the round...";
+
+  const entryFeeWei = await predictionPool.methods.entryFee().call();
+
+  try {
+    await predictionPool.methods.enterRound().send({
+      from: userAccount,
+      value: entryFeeWei
+    });
+
+    statusEl.textContent = "You joined the round! Spinning wheel...";
+    await updateUserInfo();
+    await updateRoundInfo();
+
+    await spinWheelVisual();
+
+    statusEl.textContent =
+      "You are in! When the round fills, Chainlink VRF will pick a winner. Check 'Latest Completed Round'.";
+  } catch (err) {
+    console.error("Error joining round:", err);
+    statusEl.textContent = "Transaction failed or was rejected.";
+  }
+}
+
+async function checkLatestWinner() {
+  const id = await predictionPool.methods.lastCompletedRoundId().call();
+  const roundIdNum = Number(id);
+
+  const lastRoundIdEl = document.getElementById("last-round-id");
+  const lastWinnerEl = document.getElementById("last-round-winner");
+  const lastPrizeEl = document.getElementById("last-round-prize");
+  const lastPoolEl = document.getElementById("last-round-pool");
+  const lastPlayersEl = document.getElementById("last-round-players");
+  const winMessageEl = document.getElementById("win-message");
+
+  if (roundIdNum === 0) {
+    lastRoundIdEl.textContent = "Round: –";
+    lastWinnerEl.textContent = "Winner: –";
+    lastPrizeEl.textContent = "Prize: –";
+    lastPoolEl.textContent = "Pool: –";
+    lastPlayersEl.textContent = "Players: –";
+    winMessageEl.textContent = "No completed rounds yet.";
+    return;
+  }
+
+  const info = await predictionPool.methods.getRoundInfo(roundIdNum).call();
+  const [isOpen, fulfilled, playerCount, poolWei, winner, prizeWei] = info;
+
+  const poolEth = parseFloat(web3.utils.fromWei(poolWei, "ether")).toFixed(4);
+  const prizeEth = parseFloat(web3.utils.fromWei(prizeWei, "ether")).toFixed(4);
+
+  lastRoundIdEl.textContent = `Round: #${roundIdNum}`;
+  lastWinnerEl.textContent = `Winner: ${winner}`;
+  lastPrizeEl.textContent = `Prize: ${prizeEth} ETH`;
+  lastPoolEl.textContent = `Pool: ${poolEth} ETH`;
+  lastPlayersEl.textContent = `Players: ${playerCount}`;
+
+  if (!fulfilled) {
+    winMessageEl.textContent =
+      "Round closed but randomness not fulfilled yet. Wait a bit and check again.";
+  } else if (winner.toLowerCase() === userAccount.toLowerCase()) {
+    winMessageEl.textContent = "🎉 YOU WON the last round!";
+  } else {
+    winMessageEl.textContent = "You did not win the last round. Try again!";
+  }
+}
+
+// ---------- Bootstrap ----------
+
+window.addEventListener("load", init);

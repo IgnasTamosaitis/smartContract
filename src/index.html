@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prediction Pool Roulette</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Web3.js for MetaMask interaction -->
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.3/dist/web3.min.js"></script>
+</head>
+<body>
+  <div class="top-bar">
+    <p id="user-info">User: Not connected</p>
+    <p id="user-balance">User Balance: 0 ETH</p>
+  </div>
+
+  <div class="container">
+    <h1>Prediction Pool Roulette</h1>
+    <p class="subtitle">
+      Enter the current pool for a chance to win the entire jackpot (minus a small platform fee).
+      One winner is selected fairly using Chainlink VRF on Sepolia.
+    </p>
+
+    <div class="info-grid">
+      <div class="info-box">
+        <h3>Current Round</h3>
+        <p id="round-id">#–</p>
+      </div>
+      <div class="info-box">
+        <h3>Players Joined</h3>
+        <p id="round-players">0 / 20</p>
+      </div>
+      <div class="info-box">
+        <h3>Pool Size</h3>
+        <p id="round-pool">0.00 ETH</p>
+      </div>
+      <div class="info-box">
+        <h3>Entry Fee</h3>
+        <p id="entry-fee">0.00 ETH</p>
+      </div>
+    </div>
+
+    <div class="wheel-section">
+      <div class="wheel-container">
+        <div id="spinner" class="spinner"></div>
+        <div class="pointer">▼</div>
+      </div>
+      <button id="spin-button" class="primary-button" disabled>Join Round (Spin)</button>
+      <p id="status" class="status-text"></p>
+    </div>
+
+    <div class="results-section">
+      <h2>Latest Completed Round</h2>
+      <button id="check-winner-button" class="secondary-button">
+        Check Latest Winner
+      </button>
+      <div class="winner-card">
+        <p id="last-round-id">Round: –</p>
+        <p id="last-round-winner">Winner: –</p>
+        <p id="last-round-prize">Prize: –</p>
+        <p id="last-round-pool">Pool: –</p>
+        <p id="last-round-players">Players: –</p>
+        <p id="win-message"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

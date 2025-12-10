@@ -1,281 +1,311 @@
-# SmartContract
-# Freelance Escrow – Decentralizuota Freelance Paslaugų Atsiskaitymo Sistema
+# Prediction Pool Roulette - Decentralizuota Loterijos Aplikacija
 
-Šiame projekte įgyvendinta decentralizuota freelance paslaugų atsiskaitymo sistema, veikianti Ethereum blockchain tinkle. Sistema sukurta remiantis escrow principu ir užtikrina saugų bei skaidrų atsiskaitymą tarp kliento ir freelancer’io be tarpininkų.
+## Verslo Modelio Aprašymas
 
-Kliento pervestos lėšos yra laikomos išmaniojoje sutartyje tol, kol darbas yra patvirtinamas. Esant ginčui tarp šalių, sprendimą priima iš anksto paskirtas arbitras, o išmanioji sutartis automatiškai paskirsto lėšas pagal jo sprendimą.
+### Pagrindiniai Veikėjai
 
+1. **Žaidėjai (Players)** - asmenys, norintys dalyvauti loterijoje ir laimėti prizą
+2. **Platformos Valdytojas (Platform Owner)** - išmaniosios sutarties savininkas, gaunantis platformos mokestį
+3. **Chainlink VRF Oracle** - decentralizuotas atsitiktinių skaičių generatorius, užtikrinantis sąžiningą laimėtojo pasirinkimą
 
-## 1. Naudotos technologijos
-Projektas sukurtas naudojant:
-- Solidity – išmaniosios sutarties kūrimui
-- Remix IDE – pirminiam sutarties testavimui
-- Truffle Framework – projektui valdyti, diegti ir testuoti
-- Ganache – lokaliam blockchain testavimui
-- MetaMask – piniginės ir vartotojo autentifikacijai
-- Ethereum testnet (Sepolia) – testiniam diegimui
-- React ir ethers.js – front-end decentralizuotai aplikacijai (dApp)
+### Verslo Logika
 
-## 2. Verslo modelio aprašymas
+Tai decentralizuota loterijos sistema, kur:
+- Žaidėjai sumoka fiksuotą įnašą (0.01 ETH) norėdami dalyvauti raunde
+- Kai pasiekiamas maksimalus žaidėjų skaičius (20), raundas uždaromas
+- Chainlink VRF v2 Sepolia tinkle generuoja patikrintą atsitiktinį skaičių
+- Išmanioji sutartis pasirenka vieną laimėtoją ir automatingai perveda jam prizą
+- Platformos valdytojas gauna 5% mokestį
+- Naujas raundas automatiškai prasideda
 
-Sukuriama decentralizuota freelance paslaugų platforma, kurioje dalyvauja trys pagrindinės šalys: *klientas*, *freelancer’is* ir *arbitras*. <br /> 
+### Privalumai prieš tradicinę loteriją
 
-Procesas vyksta taip:<br /> 
-- klientas sukuria projektą ir perveda sutartą ETH sumą į išmaniąją sutartį (escrow),
-- freelancer’is priima projektą, atlieka darbą ir pateikia rezultatą,
-- klientas patvirtina darbą, o lėšos automatiškai pervedamos freelancer’iui.
+- **Skaidrumas**: visi sandoriai matomi blockchain'e
+- **Saugumas**: niekas negali manipuliuoti rezultatų
+- **Automatizacija**: laimėjimai išmokami automatingai
+- **Decentralizacija**: nereikia pasitikėti trečiąja šalimi
 
-Jeigu klientas nesutinka su atliktu darbu, jis gali inicijuoti ginčą. Tokiu atveju sprendimą priima *arbitras*, kuris nustato, kaip turi būti paskirstytos sutartyje laikomos lėšos.
+## Sequence Diagram - Tipiniai Scenarijai
 
-Visa projekto eiga yra automatizuota ir valdoma išmaniosios sutarties, todėl sistema panaikina pasitikėjimo poreikį tarp šalių, užtikrina skaidrumą ir sumažina atsiskaitymo riziką.
+### Scenarijus 1: Žaidėjas prisijungia prie raundo
 
-## 3. Pagrindiniai veikėjai
-
-Sistemoje dalyvauja keturi pagrindiniai veikėjai, kurie kartu užtikrina saugų ir skaidrų atsiskaitymo procesą: <br /> 
-
-**Klientas (Client)**<br/> 
-Inicijuoja projektą, perveda sutartą ETH sumą į escrow mechanizmą bei priima sprendimą patvirtinti arba atmesti pateiktą darbą.
-
-**Freelancer’is (Freelancer)**<br/> 
-Priima projektą, atlieka sutartą darbą ir pateikia jo rezultatą per išmaniąją sutartį.
-
-**Teisėjas (Arbiter)**<br/> 
-Neutralus trečiasis asmuo, kuris įtraukiamas tik ginčo atveju. Jis išnagrinėja situaciją ir nustato, kaip turi būti paskirstytos escrow laikomos lėšos.
-
-**Išmanioji sutartis (FreelanceEscrow)**<br/> 
-Veikia kaip automatinis tarpininkas: saugo lėšas escrow režimu, valdo projekto būsenas ir vykdo ETH pervedimus pagal iš anksto apibrėžtas taisykles.
-
-
-## 4. Išmaniosios sutarties logika
-
-Išmanioji sutartis FreelanceEscrow apibrėžia aiškią projekto vykdymo seką nuo projekto sukūrimo iki galutinio atsiskaitymo arba ginčo išsprendimo.
-
-Projekto eiga:
-1. Klientas sukuria projektą nurodydamas freelancerio adresą, arbitro adresą ir projekto kainą.
-2. Klientas finansuoja projektą, pervesdamas ETH lėšas į escrow naudodamas `fundProject`.
-3. Freelancer’is patvirtina dalyvavimą projekte naudodamas `acceptProject`.
-4. Atlikęs darbą, freelancer’is pateikia rezultatą naudodamas `submitWork`.
-5. Klientas peržiūri pateiktą darbą ir:
-    - patvirtina darbą naudodamas `approveWork`.
-    - inicijuoja ginčą naudodamas `raiseDispute`.
-6. Patvirtinus darbą, išmanioji sutartis automatiškai perveda lėšas freelancer’iui.
-7. Ginčo atveju arbitras priima sprendimą ir paskirsto escrow laikomas lėšas naudodamas `resolveDispute`.
-
----
-
-## 5. Projekto būsenos
-
-Projekto eiga skirstoma į atskirus etapus, kurie parodo, kuriame vykdymo taške šiuo metu yra projektas – nuo sukūrimo iki užbaigimo arba ginčo išsprendimo.
-
-- *Created* – projektas sukurtas, tačiau lėšos dar nepervestos
-- *Funded* – klientas pervedė sutartą sumą į escrow
-- *InProgress* – freelancer’is priėmė projektą ir pradėjo darbą
-- *Submitted* – freelancer’is pateikė atlikto darbo rezultatą
-- *Completed* – darbas patvirtintas, lėšos pervestos freelancer’iui
-- Cancelled – projektas nutrauktas
-- *Disputed* – tarp kliento ir freelancer’io inicijuotas ginčas
-- *Resolved* – ginčas išspręstas arbitro sprendimu, lėšos paskirstytos
-
-## 6. Tipiniai scenarijai
-
-### Scenarijus 1: Projekto įvykdymas
-1. Klientas sukuria projektą.
-2. Klientas perveda lėšas į escrow.
-3. Freelanceris priima projektą.
-4. Freelanceris pateikia atliktą darbą.
-5. Klientas patvirtina rezultatą.
-6. Lėšos išmokamos freelancer’iui.
-
-### Scenarijus 2: Projekto atšaukimas
-Jei darbas nepateiktas, projektas gali būti atšauktas, o lėšos grąžinamos klientui.
-
-### Scenarijus 3: Ginčas
-1. Freelanceris pateikia darbą.
-2. Klientas inicijuoja ginčą.
-3. Teisėjas išnagrinėja ginčą.
-4. Teisėjas paskirsto lėšas tarp kliento ir freelancerio.
-
-
-## 7. Sekų diagramos (Sequence Diagrams)
-
-### 7.1 Projekto įvykdymo seka
-
-Šiame skyriuje pateikiama tipinė decentralizuotos „freelance“ sutarties vykdymo eiga, kai klientas užsako darbą iš freelancerio, o procesą prižiūri arbitras. Visi veiksmai atliekami per išmaniąją sutartį (Smart Contract), kuri užtikrina skaidrumą, lėšų saugumą ir automatinį atsiskaitymą.
-
-#### Vykdymo etapai:
-
-1. Projekto sukūrimas
-Klientas sukuria naują projektą išmaniojoje sutartyje, nurodydamas:<br /> 
-- freelancerio adresą,
-- arbitro adresą,
-- sutartą atlygio sumą (ETH).
-
-2. Projekto finansavimas<br /> 
-Klientas perveda sutartą ETH sumą į išmaniąją sutartį. Lėšos yra „užšaldomos“ (escrow) iki projekto pabaigos.
-
-3. Projekto patvirtinimas freelancerio<br /> 
-Freelanceris patvirtina, kad sutinka su projekto sąlygomis ir pradeda darbą.
-
-4. Darbo pateikimas<br /> 
-Freelanceris pateikia atlikto darbo įrodymą (pvz., „hash“ reikšmę), kuri leidžia užfiksuoti, kad darbas buvo perduotas klientui.
-
-5. Darbo patvirtinimas ir atsiskaitymas <br /> 
-Klientui patvirtinus, kad darbas atliktas tinkamai, išmanioji sutartis:<br /> 
-- automatiškai perveda ETH freelanceriųi,
-- pažymi projektą kaip užbaigtą.
-
-#### Sekos diagrama
-```mermaid
-sequenceDiagram
-    participant Client as Klientas
-    participant Freelancer as Freelanceris
-    participant Arbiter as Teisėjas
-    participant Contract as Smart Contract (FreelanceEscrow)
-
-    Client->>Contract: createProject(freelancer, arbiter, amount)
-    Contract-->>Client: ProjectCreated
-
-    Client->>Contract: fundProject(projectId) + ETH
-    Contract-->>Client: ProjectFunded
-
-    Freelancer->>Contract: acceptProject(projectId)
-    Contract-->>Freelancer: ProjectAccepted
-
-    Freelancer->>Contract: submitWork(projectId, workHash)
-    Contract-->>Client: WorkSubmitted
-
-    Client->>Contract: approveWork(projectId)
-    Contract-->>Freelancer: ETH pervedimas
-    Contract-->>Client: ProjectCompleted
 ```
-### 7.2 Ginčo scenarijaus seka
-Ši diagrama vaizduoja scenarijų, kai klientas nėra patenkintas pateiktu darbu ir inicijuoja ginčą. Šiuo atveju sprendimą priima teisėjas, kuris paskirsto užšaldytas lėšas tarp kliento ir freelancerio pagal priimtą sprendimą.
-
-*Vykdymo eiga:*
-- Freelanceris pateikia atliktą darbą į išmaniąją sutartį.
-- Klientas, nesutikdamas su darbo kokybe ar sąlygomis, inicijuoja ginčą.
-- Išmanioji sutartis užregistruoja ginčą sistemoje.
-- Teisėjas išnagrinėja situaciją ir paskirsto lėšas.
-- Išmanioji sutartis automatiškai perveda ETH pagal sprendimą.
-
-#### Sekos diagrama:
-```mermaid
-sequenceDiagram
-    participant Client as Klientas
-    participant Freelancer as Freelanceris
-    participant Arbiter as Teisėjas
-    participant Contract as Smart Contract (FreelanceEscrow)
-
-    Freelancer->>Contract: submitWork(projectId, workHash)
-
-    Client->>Contract: raiseDispute(projectId)
-    Contract-->>Client: DisputeOpened
-
-    Arbiter->>Contract: resolveDispute(projectId,\nclientShare, freelancerShare)
-    Contract-->>Client: ETH grąžinimas
-    Contract-->>Freelancer: ETH išmokėjimas
-    Contract-->>Arbiter: DisputeResolved
+Žaidėjas → MetaMask: Prisijungti prie tinklo
+MetaMask → Ethereum: Patvirtinti paskyrą
+Žaidėjas → Frontend: Spausti "Enter Round"
+Frontend → Smart Contract: enterRound() + 0.01 ETH
+Smart Contract → Smart Contract: Patikrinti, ar raundas atidarytas
+Smart Contract → Smart Contract: Patikrinti mokėjimo sumą
+Smart Contract → Smart Contract: Pridėti žaidėją į sąrašą
+Smart Contract → Frontend: Įvykis RoundEntered
+Frontend → Žaidėjas: Patvirtinimas ekrane
 ```
 
-## 8. Techninė architektūra
+### Scenarijus 2: Raundas užpildomas ir laimėtojas pasirenkamas
 
-Išmanioji sutartis FreelanceEscrow.sol realizuoja visą projekto logiką ir susideda iš šių pagrindinių dalių:
-
-1. Projekto būsenų valdymas:
-* Būsenų mašina (enum State) <br /> 
-Apibrėžia visas galimas projekto būsenas (pvz. sukurtas, finansuotas, priimtas, darbas pateiktas, ginčas, užbaigtas).
-Tai leidžia tiksliai kontroliuoti, kokius veiksmus galima atlikti kiekviename projekto etape.
-* Projekto struktūra (struct Project) <br /> 
-Saugo visą su projektu susijusią informaciją: klientą, freelancerį, teisėją, projekto sumą, būseną ir kita.
-* Projektų registras (mapping(uint256 => Project)) <br /> 
-Leidžia vienoje išmaniojoje sutartyje valdyti kelis projektus, kiekvienam suteikiant unikalų identifikatorių (projectId).
-
-2. Prieigos kontrolė (modifikatoriai)<br /> 
-Siekiant užtikrinti saugumą ir teisingą procesų eigą, naudojami šie modifikatoriai:
-- onlyClient – leidžia funkciją vykdyti tik projekto klientui
-- onlyFreelancer – leidžia funkciją vykdyti tik projekto freelancer’iui
-- onlyArbiter – leidžia ginčus spręsti tik paskirtam teisėjui
-- inState – užtikrina, kad funkcija būtų vykdoma tik tinkamoje projekto būsenoje
-
-3. Įvykius:<br /> 
-Visi svarbūs veiksmai yra fiksuojami „blockchain“ tinkle per įvykius:
-- ProjectCreated – projektas sukurtas
-- ProjectFunded – projektas finansuotas
-- ProjectAccepted – freelanceris priėmė projektą
-- WorkSubmitted – pateiktas atliktas darbas
-- ProjectCompleted – projektas sėkmingai užbaigtas
-- DisputeOpened – inicijuotas ginčas
-- DisputeResolved – ginčas išspręstas
-- Šie įvykiai leidžia front-end aplikacijai sekti projekto eigą ir atvaizduoti visą istoriją vartotojui.
-
-4. ETH pervedimai
-
-ETH pervedimai atliekami naudojant call metodą, kuris yra saugus ir plačiai naudojamas sprendimas Solidity kontraktuose.
-Jis leidžia patikimai pervesti lėšas tarp projekto dalyvių.
-
-5. Projekto struktūra
 ```
-FreelanceEscrow/
-│
-├── contracts/
-│ └── FreelanceEscrow.sol
-│
-├── migrations/
-│ └── 1_deploy_contracts.js
-│
-├── test/
-│ └── FreelanceEscrow.test.js
-│
-├── client/
-│ ├── src/
-│ ├── package.json
-│ └── ...
-│
-├── truffle-config.js
-└── README.md
+Paskutinis Žaidėjas → Smart Contract: enterRound() (20-tas žaidėjas)
+Smart Contract → Smart Contract: Patikrinti, ar pasiektas maxPlayers
+Smart Contract → Smart Contract: Uždaryti raundą
+Smart Contract → Chainlink VRF: requestRandomWords()
+Chainlink VRF → Blockchain: Generuoti atsitiktinį skaičių
+Chainlink VRF → Smart Contract: fulfillRandomWords(randomNumber)
+Smart Contract → Smart Contract: Apskaičiuoti laimėtoją (randomNumber % playerCount)
+Smart Contract → Smart Contract: Apskaičiuoti prizą (pool - platformFee)
+Smart Contract → Laimėtojas: Transfer prizas
+Smart Contract → Platformos Valdytojas: Transfer mokestis
+Smart Contract → Frontend: Įvykis WinnerSelected
+Smart Contract → Smart Contract: Atidaryti naują raundą
+Frontend → Visi Žaidėjai: Rodyti laimėtoją
 ```
-6. Diegimas ir testavimas
 
-##### Ganache
--	Paleisti Ganache
--	Sukurti naują workspace
--	RPC adresas: `http://127.0.0.1:7545`
+### Scenarijus 3: Žaidėjas peržiūri savo istoriją
 
-##### Truffle komandos
-Kompiliavimas: ```truffle compile```
-
-Deploy į lokalų tinklą: ```truffle migrate --network development```
-
-Testai: ```truffle test```
-
-##### Deploy į Sepolia
-Sukurkite .env failas:
 ```
-SEPOLIA_RPC_URL=<rpc_url>
-PRIVATE_KEY=<private_key>
+Žaidėjas → Frontend: Peržiūrėti istoriją
+Frontend → Smart Contract: getPlayerRounds(address)
+Smart Contract → Frontend: Grąžinti raundų sąrašą
+Frontend → Smart Contract: getRoundInfo(roundId) kiekvienam raundui
+Smart Contract → Frontend: Raundo informacija
+Frontend → Žaidėjas: Rodyti istorijos lentelę
 ```
-Deploy komanda:
+
+## Tech Stack
+
+- **Smart Contract**: Solidity 0.8.20
+- **Blockchain**: Ethereum Sepolia Testnet
+- **Oracle**: Chainlink VRF v2 (Sepolia)
+- **Development Framework**: Hardhat
+- **Frontend**: HTML/CSS/JavaScript
+- **Web3 Library**: ethers.js v6
+- **Wallet**: MetaMask
+
+## Projekto Struktūra
+
 ```
-truffle migrate --network sepolia
+smartContract/
+├── contracts/          # Išmaniosios sutartys
+│   └── PredictionPool.sol
+├── scripts/           # Deployment scriptai
+│   └── deploy.js
+├── src/              # Frontend failai
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
+├── .env.example      # Aplinkos kintamųjų pavyzdys
+├── hardhat.config.js # Hardhat konfigūracija
+└── package.json      # Node.js priklausomybės
 ```
-Įdiegtą kontraktą galima peržiūrėti: ```https://sepolia.etherscan.io```
 
-7. Front-End dApp funkcinis aprašymas
+## Setup ir Diegimas
 
-Front-end aplikacija leidžia vartotojams patogiai sąveikauti su išmaniąja sutartimi per naršyklę.
+### 1. Įdiekite priklausomybes
 
-*Pagrindinės galimybės:*
+```bash
+npm install
+```
 
--	prisijungti per **MetaMask**
--	sukurti projektą
--	pervesti projekto lėšas (ETH)
--	freelancer’iui priimti projektą
--	pateikti atliktą darbą
--	patvirtinti darbą arba inicijuoti ginčą
--	matyti projekto būseną ir istoriją
+### 2. Sukurkite .env failą
 
-*Naudojamos technologijos:*
--	React
--	Vite
--	ethers.js
--	MetaMask
+Nukopijuokite `.env.example` į `.env` ir užpildykite reikšmes:
+
+```bash
+cp .env.example .env
+```
+
+Reikalingi parametrai:
+- **SEPOLIA_RPC_URL**: Gaukite iš https://www.alchemy.com/ arba https://infura.io/
+- **PRIVATE_KEY**: Jūsų MetaMask wallet private key (pradeda 0x)
+- **VRF_SUBSCRIPTION_ID**: Chainlink VRF subscription ID iš https://vrf.chain.link/
+
+### 3. Gaukite Sepolia Test ETH
+
+Naudokite vieną iš šių faucet'ų:
+- https://www.alchemy.com/faucets/ethereum-sepolia (rekomenduojama)
+- https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+- https://faucet.quicknode.com/ethereum/sepolia
+
+### 4. Sukurkite Chainlink VRF Subscription
+
+1. Eikite į https://vrf.chain.link/
+2. Prisijunkite su MetaMask (Sepolia network)
+3. Spauskite "Create Subscription"
+4. Gaukite LINK tokens: https://faucets.chain.link/sepolia
+5. Fund subscription su LINK (minimum 2-5 LINK)
+6. Nukopijuokite Subscription ID į `.env` failą
+
+### 5. Kompiliuokite Smart Contract
+
+```bash
+npx hardhat compile
+```
+
+### 6. Deploy į Sepolia Testnet
+
+```bash
+npm run deploy
+```
+
+Išsaugokite contract address, kurį pamatysite console!
+
+### 7. Pridėkite Contract kaip VRF Consumer
+
+1. Grįžkite į https://vrf.chain.link/
+2. Atidarykite savo subscription
+3. Spauskite "Add Consumer"
+4. Įveskite deployed contract address
+
+### 8. Atnaujinkite Frontend
+
+Atidarykite `src/app.js` ir pakeiskite:
+```javascript
+const CONTRACT_ADDRESS = "YOUR_DEPLOYED_CONTRACT_ADDRESS";
+```
+Į tikrą address, kurį gavote deploying.
+
+### 9. Paleiskite Frontend
+
+Paprasčiausiai atidarykite `src/index.html` naršyklėje arba naudokite live server:
+
+```bash
+# Įdiekite live-server globaliai (jei neturite)
+npm install -g live-server
+
+# Paleiskite iš src katalogo
+cd src
+live-server
+```
+
+## Testavimas
+
+### Lokaliame Tinkle (Ganache alternative)
+
+```bash
+# Paleiskite local Ethereum node
+npx hardhat node
+
+# Kitame terminale deploy į local network
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+**Pastaba**: Chainlink VRF neveiks lokaliame tinkle. Reikia sukurti mock contract arba naudoti Sepolia.
+
+### Sepolia Testnet (Rekomenduojama)
+
+1. Įsitikinkite, kad turite Sepolia ETH
+2. Deploy su `npm run deploy`
+3. Pridėkite contract kaip VRF consumer
+4. Atidarykite frontend ir testuokite
+
+## Etherscan Verification ir Logs
+
+### 1. Peržiūrėkite Contract Etherscan'e
+
+Po deployment eikite į:
+```
+https://sepolia.etherscan.io/address/YOUR_CONTRACT_ADDRESS
+```
+
+### 2. Peržiūrėkite Transactions
+
+- Spauskite "Transactions" tab
+- Matysite visus `enterRound()` ir kitus kvietimus
+
+### 3. Peržiūrėkite Events/Logs
+
+- Spauskite ant bet kurios transakcijos
+- Spauskite "Logs" tab
+- Matysite emitted events (RoundEntered, WinnerSelected, etc.)
+
+### 4. Verify Contract (Optional bet rekomenduojama)
+
+```bash
+npx hardhat verify --network sepolia YOUR_CONTRACT_ADDRESS "VRF_SUBSCRIPTION_ID"
+```
+
+Po verification galėsite:
+- Skaityti contract code Etherscan'e
+- Naudoti "Read Contract" ir "Write Contract" funkcijas
+- Matyti dekompiliuotą kodą
+
+## Frontend Funkcionalumas
+
+### Pagrindinės Funkcijos
+
+1. **Connect Wallet** - Prisijungti su MetaMask
+2. **Enter Round** - Prisijungti prie aktyvaus raundo
+3. **View Current Round** - Matyti aktyvų raundą, žaidėjų skaičių, pool dydį
+4. **View History** - Matyti savo dalyvavimo istoriją
+5. **View Past Winners** - Matyti praėjusių raundų laimėtojus
+
+### Išplėstas Funkcionalumas (Papildomam Balui)
+
+Galite pridėti:
+- 📊 **Statistics Dashboard** - grafikai su apyvartos statistika
+- 🎨 **Improved Design** - modernus UI/UX su animacijomis
+- 📱 **Mobile Responsive** - pritaikytas mobiliems įrenginiams
+- 🔔 **Notifications** - real-time pranešimai apie naujus raundus/laimėtojus
+- 👤 **Player Profiles** - žaidėjo statistika (total played, won, etc.)
+- 🏆 **Leaderboard** - daugiausiai laimėjusių žaidėjų sąrašas
+- 💬 **Chat/Comments** - žaidėjų bendravimas
+- 🌐 **Multi-language** - lietuvių/anglų kalbos
+
+## Kaip Gauti Papildomus Balus
+
+✅ **Verslo Modelio Aprašymas (iki +0.5 balo)**:
+- ✓ Aiškiai aprašyti veikėjai
+- ✓ Sequence diagramos
+- ✓ Verslo logikos paaiškinimas
+
+✅ **Išplėstas Frontend (iki +1 balo)**:
+- Modernūs dizainas su CSS framework (Bootstrap/Tailwind)
+- Real-time updates su WebSocket arba polling
+- Grafikai ir statistika (Chart.js)
+- Responsive design
+- Animacijos ir transitions
+- Error handling ir loading states
+
+## Saugumas
+
+⚠️ **SVARBU**:
+- **NIEKADA** nedarykite commit `.env` failo į Git
+- **NIEKADA** nesidalinkite savo PRIVATE_KEY
+- Naudokite test wallet su tik test ETH
+- `.env` jau pridėtas į `.gitignore`
+
+## Troubleshooting
+
+### Contract nepriima enterRound()
+- Patikrinkite, ar raundas atidarytas
+- Patikrinkite, ar siunčiate teisingą sumą (0.01 ETH)
+- Patikrinkite, ar neviršijate maxPlayers
+
+### VRF neveikia
+- Įsitikinkite, kad subscription funded su LINK
+- Įsitikinkite, kad contract pridėtas kaip consumer
+- Palaukite 2-3 blokus po requestRandomWords()
+
+### MetaMask nepatvirtina transakcijų
+- Patikrinkite, ar esate Sepolia network
+- Patikrinkite, ar turite pakankamai Sepolia ETH gas'ui
+- Pabandykite reset MetaMask account (Settings > Advanced > Reset Account)
+
+## Papildoma Informacija
+
+### Gas Costs (Sepolia)
+- Deploy: ~2-3M gas
+- enterRound(): ~50-70k gas
+- requestRandomWords(): ~200k gas
+- fulfillRandomWords(): ~100-150k gas
+
+### Blockchain Explorers
+- Sepolia Etherscan: https://sepolia.etherscan.io/
+- Chainlink VRF Dashboard: https://vrf.chain.link/
+
+## Licencija
+
+MIT
+
+## Autorius
+
+Sukurta kaip Blockchain kurso projektas
