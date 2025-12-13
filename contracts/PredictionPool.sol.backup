@@ -1,10 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-// Simplified contract for Ganache - NO Chainlink VRF needed!
-contract PredictionPool {
-    // --- Owner ---
+import "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFCoordinatorV2Plus.sol";
+import "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+
+contract PredictionPool is VRFConsumerBaseV2Plus {
+    // --- Chainlink VRF config (Sepolia) ---
+    // Coordinator & keyHash are fixed for Sepolia VRF v2.5
+    IVRFCoordinatorV2Plus private immutable COORDINATOR;
     address public immutable contractOwner;
+    uint256 public immutable subscriptionId;
+
+    bytes32 public immutable keyHash;
+    uint32 public callbackGasLimit = 40000; // Absolute minimum
+    uint16 public requestConfirmations = 3;
+    uint32 public numRandomWords = 1;
 
     // --- Game config ---
     uint256 public entryFee = 0.001 ether; // Reduced to 0.001 ETH for testing
@@ -25,20 +36,24 @@ contract PredictionPool {
     }
 
     mapping(uint256 => Round) private rounds;
+    mapping(uint256 => uint256) private requestIdToRoundId;
 
     // --- Events ---
     event RoundOpened(uint256 indexed roundId);
     event RoundEntered(uint256 indexed roundId, address indexed player);
-    event RoundClosed(uint256 indexed roundId);
+    event RoundClosed(uint256 indexed roundId, uint256 requestId);
     event RoundWinner(uint256 indexed roundId, address indexed winner, uint256 prize);
 
-    modifier onlyOwner() {
-        require(msg.sender == contractOwner, "Only owner");
-        _;
-    }
-
-    constructor() {
+    constructor(uint256 _subscriptionId)
+        VRFConsumerBaseV2Plus(0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B) // Sepolia VRF v2.5 coordinator
+    {
+        COORDINATOR = IVRFCoordinatorV2Plus(
+            0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B
+        );
+        keyHash = 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae; // v2.5 key hash (500 gwei)
+        subscriptionId = _subscriptionId;
         contractOwner = msg.sender;
+
         currentRoundId = 1;
         rounds[currentRoundId].isOpen = true;
         emit RoundOpened(currentRoundId);
@@ -58,30 +73,51 @@ contract PredictionPool {
         emit RoundEntered(currentRoundId, msg.sender);
 
         if (r.players.length >= maxPlayers) {
-            _closeAndPickWinner(currentRoundId);
+            _closeAndRequestWinner(currentRoundId);
         }
     }
 
-    // --- Internal: close round & pick winner immediately (Ganache-friendly) ---
+    // --- Internal: close round & request randomness ---
 
-    function _closeAndPickWinner(uint256 roundId) internal {
+    function _closeAndRequestWinner(uint256 roundId) internal {
         Round storage r = rounds[roundId];
         require(r.isOpen, "Already closed");
         require(r.players.length > 0, "No players");
 
+        // Request randomness FIRST - if this fails, the whole transaction reverts
+        // and round stays open
+        uint256 requestId = COORDINATOR.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: keyHash,
+                subId: subscriptionId,
+                requestConfirmations: requestConfirmations,
+                callbackGasLimit: callbackGasLimit,
+                numWords: numRandomWords,
+                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false})) // Back to LINK with minimal gas
+            })
+        );
+
+        // Only close round if VRF request succeeded
         r.isOpen = false;
-        emit RoundClosed(roundId);
+        requestIdToRoundId[requestId] = roundId;
 
-        // Simple pseudo-random using block data (NOT SECURE for production!)
-        // Good enough for Ganache local testing
-        uint256 randomNumber = uint256(keccak256(abi.encodePacked(
-            block.timestamp,
-            block.prevrandao,
-            block.number,
-            r.players.length
-        )));
+        emit RoundClosed(roundId, requestId);
+    }
 
-        uint256 winnerIndex = randomNumber % r.players.length;
+    // --- VRF callback ---
+
+    function fulfillRandomWords(
+        uint256 requestId,
+        uint256[] calldata randomWords
+    ) internal override {
+        uint256 roundId = requestIdToRoundId[requestId];
+        Round storage r = rounds[roundId];
+
+        require(!r.fulfilled, "Already fulfilled");
+        require(!r.isOpen, "Round still open");
+        require(r.players.length > 0, "No players");
+
+        uint256 winnerIndex = randomWords[0] % r.players.length;
         address winner = r.players[winnerIndex];
 
         uint256 pool = r.pool;
@@ -92,8 +128,6 @@ contract PredictionPool {
         r.winner = winner;
         r.prize = prize;
         lastCompletedRoundId = roundId;
-
-        // Send fees and prize
 
         // Effects already done, now interactions
         (bool feeOk, ) = contractOwner.call{value: fee}("");
@@ -134,23 +168,15 @@ contract PredictionPool {
         emit RoundOpened(currentRoundId);
     }
 
-    // --- View helpers for frontend ---
-    
-    function getLastWinner()
-        external
-        view
-        returns (
-            uint256 roundId,
-            address winner,
-            uint256 prize
-        )
-    {
-        if (lastCompletedRoundId == 0) {
-            return (0, address(0), 0);
-        }
-        Round storage r = rounds[lastCompletedRoundId];
-        return (lastCompletedRoundId, r.winner, r.prize);
+    function setCallbackGasLimit(uint32 newLimit) external onlyOwner {
+        callbackGasLimit = newLimit;
     }
+
+    function setRequestConfirmations(uint16 newConfirmations) external onlyOwner {
+        requestConfirmations = newConfirmations;
+    }
+
+    // --- View helpers for frontend ---
 
     function getCurrentRoundInfo()
         external
@@ -182,21 +208,14 @@ contract PredictionPool {
         return (r.isOpen, r.fulfilled, r.players.length, r.pool, r.winner, r.prize);
     }
 
-    function getRoundPlayers(uint256 roundId)
-        external
-        view
-        returns (address[] memory)
-    {
-        return rounds[roundId].players;
-    }
-
-    // --- Emergency rescue (owner only) ---
-    
+    // Rescue ETH accidentally sent directly to contract (not part of pools).
     function rescueFunds(uint256 amount) external onlyOwner {
         require(address(this).balance >= amount, "Insufficient");
         (bool ok, ) = contractOwner.call{value: amount}("");
         require(ok, "Rescue failed");
     }
 
-    receive() external payable {}
+    receive() external payable {
+        // Allow receiving ETH (e.g., manual funding). Not part of any pool.
+    }
 }

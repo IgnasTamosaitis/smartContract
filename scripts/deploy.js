@@ -1,15 +1,10 @@
 const hre = require("hardhat");
 
 async function main() {
-  const subscriptionId = process.env.VRF_SUBSCRIPTION_ID;
-  if (!subscriptionId) {
-    throw new Error("Please set VRF_SUBSCRIPTION_ID in your .env");
-  }
-
-  console.log("Deploying PredictionPool to Sepolia with subscription:", subscriptionId);
+  console.log("Deploying PredictionPool (Ganache-friendly version)...");
 
   const PredictionPool = await hre.ethers.getContractFactory("PredictionPool");
-  const pool = await PredictionPool.deploy(subscriptionId);
+  const pool = await PredictionPool.deploy(); // No VRF subscription needed!
 
   await pool.waitForDeployment();
 
